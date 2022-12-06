@@ -5,14 +5,16 @@ import in.succinct.beckn.Request;
 import in.succinct.bpp.shell.util.BecknUtil;
 
 import java.lang.reflect.Method;
+import java.util.Map;
 
 public abstract class BppActionExtension implements Extension {
 
     @SuppressWarnings("unchecked")
     @Override
     public void invoke(Object... context) {
-        Request request = (Request) context[0];
-        Request response = (Request) context[1];
+        Map<String,String> headers = (Map<String,String>) context[0];
+        Request request = (Request) context[1];
+        Request response = (Request) context[2];
         BecknUtil.createReplyContext(request,response);
         try {
             Method method = getClass().getMethod(request.getContext().getAction(), Request.class, Request.class);

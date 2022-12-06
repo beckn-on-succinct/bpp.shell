@@ -21,8 +21,8 @@ public class PushData {
     }
 
     public void push() {
-        Request response = new Request();
-        Registry.instance().callExtensions("in.succinct.bpp.shell.action", headers, request, response);
+        response = new Request();
+        Registry.instance().callExtensions("in.succinct.bpp.shell.extension", headers, request, response);
         BecknUtil.createReplyContext(request,response);
     }
 }

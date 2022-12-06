@@ -102,9 +102,11 @@ public class BecknUtil {
     public static String getNetworkRole() {
         return in.succinct.beckn.Subscriber.SUBSCRIBER_TYPE_BPP;
     }
-
-    public static String getCountry() {
-        return Config.instance().getProperty("in.succinct.bpp.shell.country.iso" , "IND");
+    public static String getCountry(){
+        return getCountry(3);
+    }
+    public static String getCountry(int numChars) {
+        return Config.instance().getProperty(String.format("in.succinct.bpp.shell.country.iso.%d",numChars) , numChars == 2 ? "IN" : "IND");
     }
     public static String getWildCardCharacter() {
         return Config.instance().getProperty("in.succinct.bpp.shell.registry.wild.card.character" , "");
@@ -119,7 +121,7 @@ public class BecknUtil {
     }
 
     public static String getDomain(){
-        return "nic2004:52110"; // Retail!!
+        return Config.instance().getProperty("in.succinct.bpp.domain","nic2004:52110"); // Retail!!
     }
 
     public static JSONObject getSubscriptionJson() {

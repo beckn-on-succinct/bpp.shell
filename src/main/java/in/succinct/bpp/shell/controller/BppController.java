@@ -1,6 +1,7 @@
 package in.succinct.bpp.shell.controller;
 
 import com.venky.core.collections.IgnoreCaseMap;
+import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
@@ -14,6 +15,7 @@ import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.tasks.BecknApiCall;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
+import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
@@ -23,17 +25,26 @@ import in.succinct.beckn.Error;
 import in.succinct.beckn.Error.Type;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
+import in.succinct.beckn.Subscriber;
+import in.succinct.bpp.shell.extensions.BecknPublicKeyFinder;
 import in.succinct.bpp.shell.task.BppActionTask;
 import in.succinct.bpp.shell.util.BecknUtil;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 
+import javax.crypto.KeyAgreement;
+import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
 
 public class BppController extends Controller {
     public BppController(Path path) {
@@ -87,6 +98,7 @@ public class BppController extends Controller {
             if (getPath().getHeader("X-Gateway-Authorization") != null) {
                 headers.put("X-Gateway-Authorization",getPath().getHeader("X-Gateway-Authorization"));
             }
+            Config.instance().getLogger(getClass().getName()).log(Level.INFO,request.toString());
 
             BecknApiCall.build().schema(BecknUtil.getSchemaFile()).url(getPath().getOriginalRequestUrl()).path("/"+getPath().action()).headers(headers).request(request).validateRequest();
 
@@ -100,7 +112,9 @@ public class BppController extends Controller {
             }};
 
             if (isRequestAuthenticated(task,request)){
-                TaskManager.instance().executeAsync(task, importantActions.contains(getPath().action()));
+                boolean persistentTask = importantActions.contains(getPath().action());
+
+                TaskManager.instance().executeAsync(task, false);
                 return ack(request);
             }else {
                 return nack(request,new AccessDeniedException(),request.getContext().getBapId());
@@ -246,4 +260,48 @@ public class BppController extends Controller {
             return true;
         }
     }
+
+    @RequireLogin(value = false)
+    public View on_subscribe() throws Exception{
+        String payload = StringUtil.read(getPath().getInputStream());
+        JSONObject object = (JSONObject) JSONValue.parse(payload);
+
+        JSONObject lookupJSON = new JSONObject();
+        lookupJSON.put("subscriber_id",Config.instance().getProperty("in.succinct.bpp.shell.registry.id"));
+        lookupJSON.put("domain",Config.instance().getProperty("in.succinct.bpp.domain"));
+        lookupJSON.put("type", Subscriber.SUBSCRIBER_TYPE_LOCAL_REGISTRY);
+        JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
+        String signingPublicKey = null;
+        String encrPublicKey = null;
+        if (array.size() == 1){
+            JSONObject registrySubscription = ((JSONObject)array.get(0));
+            signingPublicKey = (String)registrySubscription.get("signing_public_key");
+            encrPublicKey = (String)registrySubscription.get("encr_public_key");
+        }
+        if (signingPublicKey == null || encrPublicKey == null){
+            throw new RuntimeException("Cannot verify Signature, Could not find registry keys for " + lookupJSON);
+        }
+
+
+        if (!Request.verifySignature(getPath().getHeader("Signature"), payload, signingPublicKey)){
+            throw new RuntimeException("Cannot verify Signature");
+        }
+
+        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,
+                CryptoKey.find(BecknUtil.getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION).getPrivateKey());
+
+        PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
+
+        KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);
+        agreement.init(privateKey);
+        agreement.doPhase(registryPublicKey,true);
+
+        SecretKey key = agreement.generateSecret("TlsPremasterSecret");
+
+        JSONObject output = new JSONObject();
+        output.put("answer", Crypt.getInstance().decrypt((String)object.get("challenge"),"AES",key));
+
+        return new BytesView(getPath(),output.toString().getBytes(),MimeType.APPLICATION_JSON);
+    }
+
 }
