@@ -10,7 +10,7 @@ This is a plugin used in conjunction with ecommerce adaptor applications such as
 3. [bpp.openkart- under development](https://github.com/venkatramanm/bpp.openkart)
 
 
-## Custom ecommerce application
+## My ECommerce App doesnot have an adaptor?
 Steps to convert your ecommerce platform into to a beckn enabled provider platform 
 
 *  Create the application scaffold 
