@@ -6,7 +6,7 @@ import in.succinct.bpp.shell.util.BecknUtil;
 public class AppInstaller implements Installer {
 
     public void install() {
-        BecknUtil.rotateKeys();
+        BecknUtil.subscribe();
     }
 
 

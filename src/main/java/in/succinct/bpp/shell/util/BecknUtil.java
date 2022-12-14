@@ -106,8 +106,6 @@ public class BecknUtil {
             encryptionKey.save();
         }
 
-        subscribe();
-
     }
 
     public static String getSubscriberUrl(){
@@ -243,6 +241,7 @@ public class BecknUtil {
     };
 
     public static void subscribe() {
+        BecknUtil.rotateKeys();
         Request request = new Request(BecknUtil.getSubscriptionJson());
         String hostName = Config.instance().getHostName();
         TaskManager.instance().executeAsync((Task) () -> {
