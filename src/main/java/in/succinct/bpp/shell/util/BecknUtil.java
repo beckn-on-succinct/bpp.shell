@@ -26,7 +26,7 @@ import java.util.logging.Level;
 
 public class BecknUtil {
     public static String getSubscriberId(){
-        return Config.instance().getHostName();
+        return Config.instance().getProperty("in.succinct.bpp.shell.subscriber.id",Config.instance().getHostName());
     }
 
 
