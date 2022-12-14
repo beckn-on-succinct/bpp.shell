@@ -7,11 +7,7 @@ import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.exceptions.AccessDeniedException;
-import com.venky.swf.integration.api.Call;
-import com.venky.swf.integration.api.HttpMethod;
-import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
-import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.tasks.BecknApiCall;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
@@ -42,7 +38,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -51,17 +46,14 @@ public class BppController extends Controller {
         super(path);
     }
 
-    public void subscribe() {
-        Request request = new Request(BecknUtil.getSubscriptionJson());
-        String hostName = Config.instance().getHostName();
-        TaskManager.instance().executeAsync((Task) () -> {
-            Config.instance().setHostName(hostName);
-            JSONObject response = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() , "subscribe").method(HttpMethod.POST).input(request.getInner()).inputFormat(InputFormat.JSON).
-                    header("Content-Type", MimeType.APPLICATION_JSON.toString()).
-                    header("Accept", MimeType.APPLICATION_JSON.toString()).
-                    header("Authorization", request.generateAuthorizationHeader(BecknUtil.getSubscriberId(), Objects.requireNonNull(BecknUtil.getSelfKey()).getAlias())).
-                    getResponseAsJson();
-        }, false);
+    public View subscribe() {
+        BecknUtil.subscribe();
+        return new BytesView(getPath(),"Subscription initiated!".getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+    }
+
+    @RequireLogin(false)
+    public View subscriber_json(){
+        return new BytesView(getPath(),BecknUtil.getSubscriptionJson().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
     @SuppressWarnings("unchecked")

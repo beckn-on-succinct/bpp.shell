@@ -2,6 +2,12 @@ package in.succinct.bpp.shell.util;
 
 import com.venky.core.security.Crypt;
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
+import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.plugins.background.core.Task;
+import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.messaging.Mq;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
@@ -12,15 +18,21 @@ import in.succinct.beckn.BecknObject;
 import in.succinct.beckn.Context;
 import in.succinct.beckn.Request;
 
+import in.succinct.bpp.shell.controller.BppController;
+import in.succinct.bpp.shell.extensions.BecknPublicKeyFinder;
 import in.succinct.bpp.shell.task.BppActionTask;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -93,6 +105,9 @@ public class BecknUtil {
             encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(encPair.getPublic()));
             encryptionKey.save();
         }
+
+        subscribe();
+
     }
 
     public static String getSubscriberUrl(){
@@ -227,4 +242,33 @@ public class BecknUtil {
         }
     };
 
+    public static void subscribe() {
+        Request request = new Request(BecknUtil.getSubscriptionJson());
+        String hostName = Config.instance().getHostName();
+        TaskManager.instance().executeAsync((Task) () -> {
+            Config.instance().setHostName(hostName);
+            JSONArray registered_subscribers = BecknPublicKeyFinder.lookup(BecknUtil.getSubscriberId());
+
+            List<String> apis = new ArrayList<>();
+            if (Config.instance().getBooleanProperty("in.succinct.bpp.shell.registry.auto.register")
+                    && registered_subscribers.isEmpty()){
+                apis.add("register");
+            }
+            apis.add("subscribe");
+
+            for (String api : apis){
+                Call<JSONObject> call = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() , api).method(HttpMethod.POST).input(request.getInner()).inputFormat(InputFormat.JSON).
+                        header("Content-Type", MimeType.APPLICATION_JSON.toString()).
+                        header("Accept", MimeType.APPLICATION_JSON.toString());
+
+                if (api.equals("subscribe")){
+                    call.header("Authorization", request.generateAuthorizationHeader(BecknUtil.getSubscriberId(), Objects.requireNonNull(BecknUtil.getSelfKey()).getAlias()));
+                }
+                JSONObject response = call.getResponseAsJson();
+                Config.instance().getLogger(BecknUtil.class.getName()).info(api + "-" + response.toString());
+            }
+
+
+        }, false);
+    }
 }
