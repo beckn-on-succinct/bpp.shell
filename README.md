@@ -45,8 +45,11 @@ mvn archetype:generate \
 * Start application from the project root folder using bin/swfstart
 * goto https://your_domain and login as root and root, 
 * change the password to something difficult to guess.
-* Now point to url /crypto_keys 
-* Register your subscription information onto your chosen registry 
-* You should be ready to receive messages from the network. 
+* By default, you will be onboarded to https://registry.becknprotocol.io/subscribers
 
-	
+
+* If you wish to register to a different registry like ondc, you will need to follow their instructions. 
+* To get your subscription information, by visiting the url,
+```
+   https://your_domain/bpp/subscriber_json
+```

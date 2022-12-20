@@ -24,6 +24,7 @@ public abstract class BppActionExtension implements Extension {
         }
     }
 
+
     public abstract void search(Request request,Request reply);
     public abstract void select(Request request,Request reply);
     public abstract void init(Request request,Request reply);
