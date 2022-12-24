@@ -3,7 +3,7 @@ package in.succinct.bpp.shell.extensions;
 import com.venky.core.util.ObjectHolder;
 import com.venky.extension.Extension;
 import com.venky.extension.Registry;
-import com.venky.swf.plugins.collab.db.model.CryptoKey;
+import com.venky.swf.db.model.CryptoKey;
 
 public class BecknPrivateKeyFinder implements Extension {
     static {

@@ -15,6 +15,6 @@ public class PrivateKeyFinder implements Extension {
     public void invoke(Object... context) {
         String privateKey = Request.getPrivateKey(BecknUtil.getSubscriberId(),BecknUtil.getCryptoKeyId());
         ObjectHolder<String> holder = (ObjectHolder<String>) context[0];
-        holder.set(String.format("k%s:%s",BecknUtil.getCurrentKeyNumber(),privateKey));
+        holder.set(String.format("k%s:%s",BecknUtil.getSubscriber().getUniqueKeyId(),privateKey));
     }
 }

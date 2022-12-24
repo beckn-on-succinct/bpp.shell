@@ -3,15 +3,19 @@ package in.succinct.bpp.shell.controller;
 import com.venky.core.collections.IgnoreCaseMap;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
+import com.venky.core.util.ExceptionUtil;
+import com.venky.core.util.MultiException;
+import com.venky.core.util.ObjectUtil;
+import com.venky.extension.Registry;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.exceptions.AccessDeniedException;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.tasks.BecknApiCall;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
-import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
@@ -22,8 +26,10 @@ import in.succinct.beckn.Error.Type;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.beckn.Subscriber;
+import in.succinct.bpp.core.adaptor.CommerceAdaptor;
+import in.succinct.bpp.core.adaptor.CommerceAdaptorFactory;
+import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.shell.extensions.BecknPublicKeyFinder;
-import in.succinct.bpp.shell.task.BppActionTask;
 import in.succinct.bpp.shell.util.BecknUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -33,17 +39,28 @@ import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
 public class BppController extends Controller {
+    private CommerceAdaptor adaptor ;
     public BppController(Path path) {
         super(path);
+        List<String> keys = Config.instance().getPropertyKeys(Config.instance().getProperty("in.succinct.bpp.shell.adaptor")+"\\.*");
+        Map<String,String> properties = new HashMap<>();
+        for (String k : keys){
+            properties.put(k,Config.instance().getProperty(k));
+        }
+        adaptor = CommerceAdaptorFactory.getInstance().createAdaptor(properties,BecknUtil.getSubscriber(),BecknUtil.getRegistry());
     }
 
     public View subscribe() {
@@ -53,13 +70,14 @@ public class BppController extends Controller {
 
     @RequireLogin(false)
     public View subscriber_json(){
-        return new BytesView(getPath(),BecknUtil.getSubscriptionJson().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        return new BytesView(getPath(),BecknUtil.getSubscriber().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
     @SuppressWarnings("unchecked")
     private BppActionTask createTask(String action, Request request, Map<String,String> headers){
         try {
-            return (BppActionTask)BecknUtil.getSubscriber().getTaskClass(action).getConstructor(Request.class,Map.class).newInstance(request,headers);
+            return (BppActionTask)BecknUtil.getSubscriber().getTaskClass(action).
+                    getConstructor(CommerceAdaptor.class,Request.class,Map.class).newInstance(adaptor,request,headers);
         }catch(Exception ex){
             throw new RuntimeException(ex);
         }
@@ -122,9 +140,37 @@ public class BppController extends Controller {
             error.setCode(ex.getMessage());
             error.setMessage(ex.getMessage());
 
-            BecknUtil.log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
+            adaptor.log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
         }
+    }
+
+    /* web hook */
+    @RequireLogin(false)
+    public View hook(){
+        JSONObject out = new JSONObject();
+
+        try {
+            Registry.instance().callExtensions("in.succinct.bpp.shell.hook", adaptor, getPath());
+            out.put("status","OK");
+        }catch (RuntimeException e){
+            StringWriter w = new StringWriter();
+            ExceptionUtil.getRootCause(e).printStackTrace(new PrintWriter(w));
+            out.put("status","ERROR");
+            out.put("message",w.toString());
+        }
+
+        return new BytesView(getPath(),out.toString().getBytes(StandardCharsets.UTF_8),
+                MimeType.APPLICATION_JSON){
+            @Override
+            public void write() throws IOException {
+                if (ObjectUtil.equals("OK",out.get("status"))) {
+                    super.write(HttpServletResponse.SC_OK);
+                }else {
+                    super.write(HttpServletResponse.SC_EXPECTATION_FAILED);
+                }
+            }
+        };
     }
 
     @RequireLogin(false)
