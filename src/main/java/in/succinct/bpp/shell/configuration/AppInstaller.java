@@ -15,6 +15,8 @@ import java.util.List;
 public class AppInstaller implements Installer {
 
     public void install() {
+        Database.getInstance().resetIdGeneration();
+
         installCity();
         BecknUtil.subscribe();
         Registry.instance().callExtensions( "in.succinct.bpp.search.extension.installer",BecknUtil.getCommerceAdaptor(),null);

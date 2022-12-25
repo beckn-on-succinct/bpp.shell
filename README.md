@@ -6,7 +6,7 @@ An open source [beckn](https://becknprotocol.io) adaptor plugin for the [Succinc
 This is a plugin used in conjunction with ecommerce adaptor applications such as 
 
 1. [bpp.woocommerce](https://github.com/venkatramanm/bpp.woocommerce) 
-2.  [bpp.shopify - under development](https://github.com/venkatramanm/bpp.shopify) 
+2. [bpp.shopify - under development](https://github.com/venkatramanm/bpp.shopify) 
 3. [bpp.openkart- under development](https://github.com/venkatramanm/bpp.openkart)
 
 
@@ -24,7 +24,7 @@ mvn archetype:generate \
 -DarchetypeArtifactId=swf-bpp-archetype \
 -DarchetypeVersion=1.0-SNAPSHOT \
 -DgroupId=in.succinct \
--DartifactId=bpp.shopify -Dversion=1.0-SNAPSHOT
+-DartifactId=woocommerce.app -Dadaptor=bpp.woocommerce -Dversion=1.0-SNAPSHOT
 ```
 	
 * Locate ECommerceExtension.java and fill in the stubs

@@ -55,12 +55,7 @@ public class BppController extends Controller {
     private CommerceAdaptor adaptor ;
     public BppController(Path path) {
         super(path);
-        List<String> keys = Config.instance().getPropertyKeys(Config.instance().getProperty("in.succinct.bpp.shell.adaptor")+"\\.*");
-        Map<String,String> properties = new HashMap<>();
-        for (String k : keys){
-            properties.put(k,Config.instance().getProperty(k));
-        }
-        adaptor = CommerceAdaptorFactory.getInstance().createAdaptor(properties,BecknUtil.getSubscriber(),BecknUtil.getRegistry());
+        adaptor = BecknUtil.getCommerceAdaptor();
     }
 
     public View subscribe() {

@@ -96,15 +96,14 @@ public class BecknUtil {
     };
     private static Subscriber bSubscriber = new Subscriber(){
         {
-            bSubscriber.setSubscriberId(getSubscriberId());
-            bSubscriber.setUniqueKeyId(getCryptoKeyId());
-            bSubscriber.setCity(getCity());
-            bSubscriber.setType(getNetworkRole());
-            bSubscriber.setCountry(getCountry());
-            bSubscriber.setDomain(getDomain());
-            bSubscriber.setSubscriberUrl(getSubscriberUrl());
-            bSubscriber.setInner(registry.getSubscriptionJson(bSubscriber));
-
+            setSubscriberId(BecknUtil.getSubscriberId());
+            setUniqueKeyId(BecknUtil.getCryptoKeyId());
+            setCity(BecknUtil.getCity());
+            setType(BecknUtil.getNetworkRole());
+            setCountry(BecknUtil.getCountry());
+            setDomain(BecknUtil.getDomain());
+            setSubscriberUrl(BecknUtil.getSubscriberUrl());
+            registry.getSubscriptionJson(this);
         }
         @Override
         public Class<BppActionTask> getTaskClass(String action) {
@@ -114,11 +113,15 @@ public class BecknUtil {
 
 
     public static CommerceAdaptor getCommerceAdaptor(){
-        List<String> keys = Config.instance().getPropertyKeys("in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor")+"\\.*");
+        return CommerceAdaptorFactory.getInstance().createAdaptor(getAdaptorConfig(),BecknUtil.getSubscriber(),BecknUtil.getRegistry());
+    }
+
+    public static Map<String,String> getAdaptorConfig(){
+        List<String> keys = Config.instance().getPropertyKeys("in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor")+".*");
         Map<String,String> properties = new HashMap<>();
         for (String k : keys){
             properties.put(k,Config.instance().getProperty(k));
         }
-        return CommerceAdaptorFactory.getInstance().createAdaptor(properties,BecknUtil.getSubscriber(),BecknUtil.getRegistry());
+        return properties;
     }
 }
