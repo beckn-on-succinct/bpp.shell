@@ -4,6 +4,8 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.extension.Registry;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
+import com.venky.swf.plugins.background.core.DbTask;
+import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.config.State;
@@ -18,8 +20,11 @@ public class AppInstaller implements Installer {
         Database.getInstance().resetIdGeneration();
 
         installCity();
-        BecknUtil.subscribe();
-        Registry.instance().callExtensions( "in.succinct.bpp.search.extension.installer",BecknUtil.getCommerceAdaptor(),null);
+        TaskManager.instance().executeAsync((DbTask)()->{
+            BecknUtil.subscribe();
+            Registry.instance().callExtensions( "in.succinct.bpp.search.extension.installer",BecknUtil.getCommerceAdaptor(),null);
+        },false);
+
     }
 
 
