@@ -39,9 +39,9 @@ public class AppInstaller implements Installer {
         List<State> states = new Select().from(State.class).execute(1);
         State state = states.isEmpty() ? Database.getTable(State.class).newRecord() : states.get(0);
         if (state.getRawRecord().isNewRecord()){
-            state.setName("Unknown");
+            state.setName("Karnataka");
             state.setCountryId(country.getId());
-            state.setCode("Unknown");
+            state.setCode("KA");
             state.save();
         }
 
