@@ -96,6 +96,7 @@ public class BecknUtil {
     };
     private static Subscriber bSubscriber = new Subscriber(){
         {
+            setAppId(BecknUtil.getSubscriberId());
             setSubscriberId(BecknUtil.getSubscriberId());
             setUniqueKeyId(BecknUtil.getCryptoKeyId());
             setCity(BecknUtil.getCity());
