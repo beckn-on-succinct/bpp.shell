@@ -10,7 +10,9 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.CommerceAdaptorFactory;
-import in.succinct.bpp.core.registry.BecknRegistry;
+import in.succinct.bpp.core.adaptor.NetworkAdaptor;
+
+import in.succinct.bpp.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.bpp.core.tasks.BppActionTask;
 
 import java.util.HashMap;
@@ -80,20 +82,16 @@ public class BecknUtil {
         return "/config/schema.yaml";
     }
 
-    public static BecknRegistry getRegistry(){
-        return registry;
+    public static NetworkAdaptor getNetworkAdaptor(){
+        return networkAdaptor;
     }
     public static Subscriber getSubscriber(){
         return bSubscriber;
     }
     public static void subscribe(){
-        getRegistry().subscribe(getSubscriber());
+        getNetworkAdaptor().subscribe(getSubscriber());
     }
-    private static BecknRegistry registry = new BecknRegistry(getRegistryUrl(),getSchemaFile()){
-        public boolean isSelfRegistrationSupported() {
-            return Config.instance().getBooleanProperty("in.succinct.bpp.shell.registry.auto.register");
-        }
-    };
+    private static NetworkAdaptor networkAdaptor = NetworkAdaptorFactory.getInstance().getAdaptor(Config.instance().getProperty("in.succinct.bpp.shell.network.name","boc"));
     private static Subscriber bSubscriber = new Subscriber(){
         {
             setAppId(BecknUtil.getSubscriberId());
@@ -104,7 +102,7 @@ public class BecknUtil {
             setCountry(BecknUtil.getCountry());
             setDomain(BecknUtil.getDomain());
             setSubscriberUrl(BecknUtil.getSubscriberUrl());
-            registry.getSubscriptionJson(this);
+            networkAdaptor.getSubscriptionJson(this);
         }
         @Override
         public Class<BppActionTask> getTaskClass(String action) {
@@ -114,7 +112,7 @@ public class BecknUtil {
 
 
     public static CommerceAdaptor getCommerceAdaptor(){
-        return CommerceAdaptorFactory.getInstance().createAdaptor(getAdaptorConfig(),BecknUtil.getSubscriber(),BecknUtil.getRegistry());
+        return CommerceAdaptorFactory.getInstance().createAdaptor(getAdaptorConfig(),BecknUtil.getSubscriber());
     }
 
     public static Map<String,String> getAdaptorConfig(){

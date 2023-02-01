@@ -4,7 +4,6 @@ import com.venky.core.collections.IgnoreCaseMap;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.ExceptionUtil;
-import com.venky.core.util.MultiException;
 import com.venky.core.util.ObjectUtil;
 import com.venky.extension.Registry;
 import com.venky.swf.controller.Controller;
@@ -27,7 +26,7 @@ import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
-import in.succinct.bpp.core.adaptor.CommerceAdaptorFactory;
+import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
 import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.shell.extensions.BecknPublicKeyFinder;
 import in.succinct.bpp.shell.util.BecknUtil;
@@ -44,9 +43,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -72,7 +69,7 @@ public class BppController extends Controller {
     private BppActionTask createTask(String action, Request request, Map<String,String> headers){
         try {
             return (BppActionTask)BecknUtil.getSubscriber().getTaskClass(action).
-                    getConstructor(CommerceAdaptor.class,Request.class,Map.class).newInstance(adaptor,request,headers);
+                    getConstructor(NetworkApiAdaptor.class,CommerceAdaptor.class,Request.class,Map.class).newInstance(BecknUtil.getNetworkAdaptor().getApiAdaptor(),adaptor,request,headers);
         }catch(Exception ex){
             throw new RuntimeException(ex);
         }
@@ -135,7 +132,7 @@ public class BppController extends Controller {
             error.setCode(ex.getMessage());
             error.setMessage(ex.getMessage());
 
-            adaptor.log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
+            BecknUtil.getNetworkAdaptor().getApiAdaptor().log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
         }
     }
