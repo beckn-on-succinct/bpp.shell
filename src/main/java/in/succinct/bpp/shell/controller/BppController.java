@@ -143,7 +143,7 @@ public class BppController extends Controller {
         JSONObject out = new JSONObject();
 
         try {
-            Registry.instance().callExtensions("in.succinct.bpp.shell.hook", adaptor, getPath());
+            Registry.instance().callExtensions("in.succinct.bpp.shell.hook", adaptor, BecknUtil.getNetworkAdaptor(), getPath());
             out.put("status","OK");
         }catch (RuntimeException e){
             StringWriter w = new StringWriter();
