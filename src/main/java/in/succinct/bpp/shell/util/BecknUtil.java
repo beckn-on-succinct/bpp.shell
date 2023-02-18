@@ -91,7 +91,7 @@ public class BecknUtil {
     public static void subscribe(){
         getNetworkAdaptor().subscribe(getSubscriber());
     }
-    private static NetworkAdaptor networkAdaptor = NetworkAdaptorFactory.getInstance().getAdaptor(Config.instance().getProperty("in.succinct.bpp.shell.network.name","boc"));
+    private static NetworkAdaptor networkAdaptor = NetworkAdaptorFactory.getInstance().getAdaptor(Config.instance().getProperty("in.succinct.bpp.shell.network.name","beckn_open"));
     private static Subscriber bSubscriber = new Subscriber(){
         {
             setAppId(BecknUtil.getSubscriberId());
