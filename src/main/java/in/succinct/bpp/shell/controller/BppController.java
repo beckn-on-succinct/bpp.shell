@@ -102,7 +102,7 @@ public class BppController extends Controller {
             }
             Config.instance().getLogger(getClass().getName()).log(Level.INFO,request.toString());
 
-            BecknApiCall.build().schema(BecknUtil.getSchemaFile()).url(getPath().getOriginalRequestUrl()).path("/"+getPath().action()).headers(headers).request(request).validateRequest();
+            BecknApiCall.build().schema(BecknUtil.getSchemaURL()).url(getPath().getOriginalRequestUrl()).path("/"+getPath().action()).headers(headers).request(request).validateRequest();
 
             BppActionTask task = createTask(getPath().action(),request,headers);
 

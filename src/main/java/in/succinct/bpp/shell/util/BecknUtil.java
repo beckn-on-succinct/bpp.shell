@@ -15,6 +15,8 @@ import in.succinct.bpp.core.adaptor.NetworkAdaptor;
 import in.succinct.bpp.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.bpp.core.tasks.BppActionTask;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,12 +76,13 @@ public class BecknUtil {
     }
 
     public static String getDomain(){
-        return Config.instance().getProperty("in.succinct.bpp.domain","nic2004:52110"); // Retail!!
+        return Config.instance().getProperty("in.succinct.bpp.shell.domain","nic2004:52110"); // Retail!!
     }
 
 
-    public static String getSchemaFile() {
-        return "/config/schema.yaml";
+    public static URL getSchemaURL() {
+        return networkAdaptor.getDomains().get(getSubscriber().getDomain()).getSchemaURL();
+        //return "/config/schema.yaml";
     }
 
     public static NetworkAdaptor getNetworkAdaptor(){
