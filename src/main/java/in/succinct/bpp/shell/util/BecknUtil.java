@@ -27,24 +27,26 @@ public class BecknUtil {
     }
 
     public static String getCryptoKeyId(){
-        List<CryptoKey> latest = new Select().from(CryptoKey.class).
-                where(new Expression(ModelReflector.instance(CryptoKey.class).getPool(),"PURPOSE",
-                        Operator.EQ ,CryptoKey.PURPOSE_SIGNING)).
-                orderBy("ID DESC").execute(1);
-        if (latest.isEmpty()){
-            return BecknUtil.getSubscriberId() + ".k0" ;
-        }else {
-            return latest.get(0).getAlias();
+
+        String keyId = Config.instance().getProperty("in.succinct.bpp.shell.subscriber.key.id");
+
+        if (ObjectUtil.isVoid(keyId)) {
+            List<CryptoKey> latest = new Select().from(CryptoKey.class).
+                    where(new Expression(ModelReflector.instance(CryptoKey.class).getPool(), "PURPOSE",
+                            Operator.EQ, CryptoKey.PURPOSE_SIGNING)).
+                    orderBy("ID DESC").execute(1);
+            if (latest.isEmpty()) {
+                keyId = BecknUtil.getSubscriberId() + ".k0";
+            } else {
+                keyId =latest.get(0).getAlias();
+            }
         }
+        return keyId;
     }
 
 
     public static String getRegistryUrl(){
-        String url = Config.instance().getProperty("in.succinct.bpp.shell.registry.url");
-        if (ObjectUtil.isVoid(url)){
-            throw new RuntimeException("\"in.succinct.bpp.shell.registry.url\" not set.");
-        }
-        return url;
+        return getNetworkAdaptor().getRegistryUrl();
     }
     public static String getSubscriberUrl(){
         return String.format("%s/bpp",Config.instance().getServerBaseUrl());

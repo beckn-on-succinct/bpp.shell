@@ -44,8 +44,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.logging.Level;
 
 public class BppController extends Controller {
@@ -85,7 +87,7 @@ public class BppController extends Controller {
             request.getContext().setBppUri(BecknUtil.getSubscriberUrl());
             request.getContext().setAction(getPath().action());
 
-            String callbackUrl = request.getContext().getBapUri();
+            //String callbackUrl = request.getContext().getBapUri();
 
 
             Map<String,String> headers =  new IgnoreCaseMap<>();
@@ -99,6 +101,11 @@ public class BppController extends Controller {
             }
             if (getPath().getHeader("X-Gateway-Authorization") != null) {
                 headers.put("X-Gateway-Authorization",getPath().getHeader("X-Gateway-Authorization"));
+
+                in.succinct.beckn.Subscriber bg = getSubscriber(request.extractAuthorizationParams("X-Gateway-Authorization",headers));
+                if (bg != null) {
+                    request.getExtendedAttributes().set(Request.CALLBACK_URL, bg.getSubscriberUrl());
+                }
             }
             Config.instance().getLogger(getClass().getName()).log(Level.INFO,request.toString());
 
@@ -135,6 +142,22 @@ public class BppController extends Controller {
             BecknUtil.getNetworkAdaptor().getApiAdaptor().log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
         }
+    }
+
+    private Subscriber getSubscriber(Map<String, String> authParams) {
+        in.succinct.beckn.Subscriber bg = null;
+        if (!authParams.isEmpty()){
+            String keyId = authParams.get("keyId");
+            StringTokenizer keyTokenizer = new StringTokenizer(keyId,"|");
+            String subscriberId = keyTokenizer.nextToken();
+
+            List<Subscriber> subscriber = BecknUtil.getNetworkAdaptor().lookup(subscriberId,true);
+            if (!subscriber.isEmpty()){
+                bg = subscriber.get(0);
+            }
+        }
+        return bg;
+
     }
 
     /* web hook */
