@@ -320,8 +320,8 @@ public class BppController extends Controller {
         JSONObject object = (JSONObject) JSONValue.parse(payload);
 
         JSONObject lookupJSON = new JSONObject();
-        lookupJSON.put("subscriber_id",Config.instance().getProperty("in.succinct.bpp.shell.registry.id"));
-        lookupJSON.put("domain",Config.instance().getProperty("in.succinct.bpp.domain"));
+        lookupJSON.put("subscriber_id",BecknUtil.getNetworkAdaptor().getRegistry().getSubscriberId());
+        lookupJSON.put("domain",BecknUtil.getCommerceAdaptor().getSubscriber().getDomain());
         lookupJSON.put("type", Subscriber.SUBSCRIBER_TYPE_LOCAL_REGISTRY);
         JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
         String signingPublicKey = null;
