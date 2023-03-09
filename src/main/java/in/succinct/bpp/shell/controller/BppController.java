@@ -83,6 +83,7 @@ public class BppController extends Controller {
         try {
 
             request = new Request(StringUtil.read(getPath().getInputStream()));
+            // Go Ahead or reject context based on subsciber!
             request.getContext().setBppId(BecknUtil.getSubscriberId());
             request.getContext().setBppUri(BecknUtil.getSubscriberUrl());
             request.getContext().setAction(getPath().action());
@@ -126,7 +127,7 @@ public class BppController extends Controller {
                 TaskManager.instance().executeAsync(task, false);
                 return ack(request);
             }else {
-                return nack(request,new AccessDeniedException(),request.getContext().getBapId());
+                return nack(request,new AccessDeniedException(),request.getContext().getBapId()); // See if throw. !!
             }
         }catch (Exception ex){
             if (request == null){
@@ -186,6 +187,11 @@ public class BppController extends Controller {
                 }
             }
         };
+    }
+    @RequireLogin(false)
+    public View order_hook(String event){
+        //event accessible via path.parameter()
+        return hook();
     }
 
     @RequireLogin(false)
