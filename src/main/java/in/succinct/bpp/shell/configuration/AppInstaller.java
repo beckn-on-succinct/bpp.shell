@@ -22,7 +22,7 @@ public class AppInstaller implements Installer {
         installCity();
         TaskManager.instance().executeAsync((DbTask)()->{
             BecknUtil.subscribe();
-            Registry.instance().callExtensions( "in.succinct.bpp.search.extension.installer",BecknUtil.getNetworkAdaptor(),BecknUtil.getCommerceAdaptor(),null);
+            Registry.instance().callExtensions( "in.succinct.bpp.search.extension.installer",BecknUtil.getNetworkAdaptor(),BecknUtil.getCommerceAdaptor());
         },false);
 
     }
