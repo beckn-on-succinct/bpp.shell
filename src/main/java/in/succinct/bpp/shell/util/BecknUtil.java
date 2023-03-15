@@ -102,6 +102,7 @@ public class BecknUtil {
             setAppId(BecknUtil.getSubscriberId());
             setSubscriberId(BecknUtil.getSubscriberId());
             setUniqueKeyId(BecknUtil.getCryptoKeyId());
+            setAlias(BecknUtil.getCryptoKeyId());
             setCity(BecknUtil.getCity());
             setType(BecknUtil.getNetworkRole());
             setCountry(BecknUtil.getCountry());
