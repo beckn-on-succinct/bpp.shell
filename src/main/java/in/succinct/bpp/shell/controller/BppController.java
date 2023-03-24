@@ -10,7 +10,6 @@ import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
-import com.venky.swf.exceptions.AccessDeniedException;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.tasks.BecknApiCall;
@@ -27,10 +26,13 @@ import in.succinct.beckn.Response;
 import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
+import in.succinct.beckn.BecknException;
+import in.succinct.beckn.SellerException;
+import in.succinct.beckn.SellerException.GenericBusinessError;
+import in.succinct.beckn.SellerException.InvalidRequestError;
+import in.succinct.beckn.SellerException.InvalidSignature;
 import in.succinct.bpp.core.tasks.BppActionTask;
-import in.succinct.bpp.shell.extensions.BecknPublicKeyFinder;
 import in.succinct.bpp.shell.util.BecknUtil;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -127,7 +129,7 @@ public class BppController extends Controller {
                 TaskManager.instance().executeAsync(task, false);
                 return ack(request);
             }else {
-                return nack(request,new AccessDeniedException(),request.getContext().getBapId()); // See if throw. !!
+                return nack(request,new SellerException.InvalidSignature(),request.getContext().getBapId()); // See if throw. !!
             }
         }catch (Exception ex){
             if (request == null){
@@ -137,7 +139,11 @@ public class BppController extends Controller {
             Error error = new Error();
             response.setContext(request.getContext());
             response.setError(error);
-            error.setCode(ex.getMessage());
+            if (ex instanceof BecknException) {
+                error.setCode(((BecknException)ex).getErrorCode());
+            }else{
+                error.setCode(new SellerException.GenericBusinessError().getErrorCode());
+            }
             error.setMessage(ex.getMessage());
 
             BecknUtil.getNetworkAdaptor().getApiAdaptor().log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
@@ -268,9 +274,21 @@ public class BppController extends Controller {
         if (th != null){
             Error error = new Error();
             response.setError(error);
-            error.setMessage(th.toString());
-            error.setType( th.getClass().getName().startsWith("org.openapi4j") ?  Type.JSON_SCHEMA_ERROR: Type.DOMAIN_ERROR);
-            error.setCode(th.toString());
+            if (th.getClass().getName().startsWith("org.openapi4j")){
+                InvalidRequestError sellerException = new InvalidRequestError();
+                error.setType(Type.JSON_SCHEMA_ERROR);
+                error.setCode(sellerException.getErrorCode());
+                error.setMessage(sellerException.getMessage());
+            }else if (th instanceof BecknException){
+                BecknException bex = (BecknException) th;
+                error.setType(Type.DOMAIN_ERROR);
+                error.setCode(bex.getErrorCode());
+                error.setMessage(bex.getMessage());
+            }else {
+                error.setMessage(th.toString());
+                error.setCode(new GenericBusinessError().getErrorCode());
+                error.setType(Type.DOMAIN_ERROR);
+            }
         }
         //BecknUtil.log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
         return response;
@@ -286,7 +304,7 @@ public class BppController extends Controller {
                 "headers=\"(created) (expires) digest\""){
             @Override
             public void write() throws IOException {
-                if (th instanceof AccessDeniedException){
+                if (th instanceof InvalidSignature){
                     super.write(HttpServletResponse.SC_UNAUTHORIZED);
                 }else {
                     super.write(HttpServletResponse.SC_BAD_REQUEST);
@@ -325,31 +343,21 @@ public class BppController extends Controller {
         String payload = StringUtil.read(getPath().getInputStream());
         JSONObject object = (JSONObject) JSONValue.parse(payload);
 
-        JSONObject lookupJSON = new JSONObject();
-        lookupJSON.put("subscriber_id",BecknUtil.getNetworkAdaptor().getRegistry().getSubscriberId());
-        lookupJSON.put("domain",BecknUtil.getCommerceAdaptor().getSubscriber().getDomain());
-        lookupJSON.put("type", Subscriber.SUBSCRIBER_TYPE_LOCAL_REGISTRY);
-        JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
-        String signingPublicKey = null;
-        String encrPublicKey = null;
-        if (array.size() == 1){
-            JSONObject registrySubscription = ((JSONObject)array.get(0));
-            signingPublicKey = (String)registrySubscription.get("signing_public_key");
-            encrPublicKey = (String)registrySubscription.get("encr_public_key");
-        }
-        if (signingPublicKey == null || encrPublicKey == null){
-            throw new RuntimeException("Cannot verify Signature, Could not find registry keys for " + lookupJSON);
+        Subscriber registry = BecknUtil.getNetworkAdaptor().getRegistry();
+
+        if (registry.getSigningPublicKey() == null || registry.getEncrPublicKey() == null){
+            throw new RuntimeException("Cannot verify Signature, Could not find registry keys for " + registry);
         }
 
 
-        if (!Request.verifySignature(getPath().getHeader("Signature"), payload, signingPublicKey)){
-            throw new RuntimeException("Cannot verify Signature");
+        if (!Request.verifySignature(getPath().getHeader("Signature"), payload, registry.getSigningPublicKey())){
+            throw new SellerException.InvalidSignature();
         }
 
         PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,
                 CryptoKey.find(BecknUtil.getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION).getPrivateKey());
 
-        PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
+        PublicKey registryPublicKey = Request.getEncryptionPublicKey(registry.getEncrPublicKey());
 
         KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);
         agreement.init(privateKey);
