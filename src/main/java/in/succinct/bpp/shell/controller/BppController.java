@@ -10,6 +10,8 @@ import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
+import com.venky.swf.db.model.SWFHttpResponse;
+import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.tasks.BecknApiCall;
@@ -19,18 +21,18 @@ import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
 import in.succinct.beckn.Acknowledgement;
 import in.succinct.beckn.Acknowledgement.Status;
+import in.succinct.beckn.BecknException;
 import in.succinct.beckn.Error;
 import in.succinct.beckn.Error.Type;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
-import in.succinct.beckn.Subscriber;
-import in.succinct.bpp.core.adaptor.CommerceAdaptor;
-import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
-import in.succinct.beckn.BecknException;
 import in.succinct.beckn.SellerException;
 import in.succinct.beckn.SellerException.GenericBusinessError;
 import in.succinct.beckn.SellerException.InvalidRequestError;
 import in.succinct.beckn.SellerException.InvalidSignature;
+import in.succinct.beckn.Subscriber;
+import in.succinct.bpp.core.adaptor.CommerceAdaptor;
+import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
 import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.shell.util.BecknUtil;
 import org.json.simple.JSONObject;
@@ -64,15 +66,31 @@ public class BppController extends Controller {
         return new BytesView(getPath(),"Subscription initiated!".getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
+    public View register(){
+        BecknUtil.getNetworkAdaptor().register(BecknUtil.getCommerceAdaptor().getSubscriber());
+        return new BytesView(getPath(),"Registration initiated!".getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+    }
+
     @RequireLogin(false)
     public View subscriber_json(){
-        return new BytesView(getPath(),BecknUtil.getSubscriber().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        return new BytesView(getPath(),BecknUtil.getCommerceAdaptor().getSubscriber().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+    }
+
+    @RequireLogin(false)
+    public View reindex(){
+        Registry.instance().callExtensions( "in.succinct.bpp.search.extension.reinstall",BecknUtil.getNetworkAdaptor(),BecknUtil.getCommerceAdaptor());
+        return IntegrationAdaptor.instance(SWFHttpResponse.class, JSONObject.class).createStatusResponse(getPath(),null);
+    }
+
+    public View sign() throws  Exception{
+        String sign = Request.generateSignature(StringUtil.read(getPath().getInputStream()), Request.getPrivateKey(BecknUtil.getSubscriberId(),BecknUtil.getCryptoKeyId()));
+        return new BytesView(getPath(),sign.getBytes(StandardCharsets.UTF_8),MimeType.TEXT_PLAIN);
     }
 
     @SuppressWarnings("unchecked")
     private BppActionTask createTask(String action, Request request, Map<String,String> headers){
         try {
-            return (BppActionTask)BecknUtil.getSubscriber().getTaskClass(action).
+            return (BppActionTask)BecknUtil.getCommerceAdaptor().getSubscriber().getTaskClass(action).
                     getConstructor(NetworkApiAdaptor.class,CommerceAdaptor.class,Request.class,Map.class).newInstance(BecknUtil.getNetworkAdaptor().getApiAdaptor(),adaptor,request,headers);
         }catch(Exception ex){
             throw new RuntimeException(ex);
@@ -194,6 +212,20 @@ public class BppController extends Controller {
             }
         };
     }
+
+    @RequireLogin(false)
+    public View issue(){
+        return act();
+    }
+
+    @RequireLogin(false)
+    public View issue_status(){
+        return act();
+    }
+
+
+
+
     @RequireLogin(false)
     public View order_hook(String event){
         //event accessible via path.parameter()
@@ -345,14 +377,11 @@ public class BppController extends Controller {
 
         Subscriber registry = BecknUtil.getNetworkAdaptor().getRegistry();
 
-        if (registry.getSigningPublicKey() == null || registry.getEncrPublicKey() == null){
-            throw new RuntimeException("Cannot verify Signature, Could not find registry keys for " + registry);
+        if (registry.getEncrPublicKey() == null){
+            throw new RuntimeException("Could not find registry keys for " + registry);
         }
 
 
-        if (!Request.verifySignature(getPath().getHeader("Signature"), payload, registry.getSigningPublicKey())){
-            throw new SellerException.InvalidSignature();
-        }
 
         PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,
                 CryptoKey.find(BecknUtil.getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION).getPrivateKey());

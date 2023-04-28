@@ -83,7 +83,7 @@ public class BecknUtil {
 
 
     public static URL getSchemaURL() {
-        return networkAdaptor.getDomains().get(getSubscriber().getDomain()).getSchemaURL();
+        return networkAdaptor.getDomains().get(getCommerceAdaptor().getSubscriber().getDomain()).getSchemaURL();
         //return "/config/schema.yaml";
     }
 
@@ -94,7 +94,8 @@ public class BecknUtil {
         return bSubscriber;
     }
     public static void subscribe(){
-        getNetworkAdaptor().subscribe(getSubscriber());
+        CommerceAdaptor adaptor = getCommerceAdaptor();
+        getNetworkAdaptor().subscribe(adaptor.getSubscriber());
     }
     private static NetworkAdaptor networkAdaptor = NetworkAdaptorFactory.getInstance().getAdaptor(Config.instance().getProperty("in.succinct.bpp.shell.network.name","beckn_open"));
     private static Subscriber bSubscriber = new Subscriber(){
