@@ -191,7 +191,7 @@ public class BppController extends Controller {
         JSONObject out = new JSONObject();
 
         try {
-            Registry.instance().callExtensions("in.succinct.bpp.shell.hook", adaptor, BecknUtil.getNetworkAdaptor(), getPath());
+            Registry.instance().callExtensions("in.succinct.bpp.shell."+getPath().action(), adaptor, BecknUtil.getNetworkAdaptor(), getPath());
             out.put("status","OK");
         }catch (RuntimeException e){
             StringWriter w = new StringWriter();
@@ -223,11 +223,26 @@ public class BppController extends Controller {
         return act();
     }
 
+    @RequireLogin(false)
+    public View receiver_recon(){
+        return act();
+    }
 
 
 
     @RequireLogin(false)
     public View order_hook(String event){
+        //event accessible via path.parameter()
+        return hook();
+    }
+    @RequireLogin(false)
+    public View igm_hook(){
+        return hook();
+    }
+
+    @RequireLogin(false)
+    public View recon_hook(String event){
+        //event = on_receiver_recon
         //event accessible via path.parameter()
         return hook();
     }
