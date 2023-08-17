@@ -199,6 +199,7 @@ public class BppController extends Controller {
             out.put("status","ERROR");
             out.put("message",w.toString());
         }
+        Config.instance().getLogger(getClass().getName()).log(Level.INFO,out.toString());
 
         return new BytesView(getPath(),out.toString().getBytes(StandardCharsets.UTF_8),
                 MimeType.APPLICATION_JSON){
@@ -237,6 +238,16 @@ public class BppController extends Controller {
     }
     @RequireLogin(false)
     public View igm_hook(){
+        return hook();
+    }
+
+    @RequireLogin(false)
+    public View return_hook(String event){
+        return hook();
+    }
+
+    @RequireLogin(false)
+    public View refund_hook(String event){
         return hook();
     }
 
