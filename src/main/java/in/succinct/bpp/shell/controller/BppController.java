@@ -32,6 +32,7 @@ import in.succinct.beckn.SellerException.InvalidRequestError;
 import in.succinct.beckn.SellerException.InvalidSignature;
 import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
+import in.succinct.bpp.core.adaptor.api.MessageLogger;
 import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
 import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.shell.util.BecknUtil;
@@ -163,8 +164,7 @@ public class BppController extends Controller {
                 error.setCode(new SellerException.GenericBusinessError().getErrorCode());
             }
             error.setMessage(ex.getMessage());
-
-            BecknUtil.getNetworkAdaptor().getApiAdaptor().log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
+            BecknUtil.getNetworkAdaptor().getApiAdaptor().log(MessageLogger.FROM_NETWORK,request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
         }
     }
@@ -243,6 +243,12 @@ public class BppController extends Controller {
 
     @RequireLogin(false)
     public View return_hook(String event){
+        return hook();
+    }
+
+    @RequireLogin(false)
+    public View listing_hook(String event){
+        //event accessible via path.parameter()
         return hook();
     }
 

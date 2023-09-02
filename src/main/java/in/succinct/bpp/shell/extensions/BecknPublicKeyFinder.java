@@ -43,6 +43,7 @@ public class BecknPublicKeyFinder implements Extension {
     public static JSONArray lookup(String subscriber_id) {
         JSONObject object = new JSONObject();
         object.put("subscriber_id",subscriber_id);
+        object.put("country","IND");
         return lookup(object);
     }
     public static JSONArray lookup(JSONObject object){
