@@ -8,6 +8,7 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.routing.Config;
 import in.succinct.bpp.shell.util.BecknUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -37,7 +38,10 @@ public class BecknPublicKeyFinder implements Extension {
         if (!responses.isEmpty()){
             JSONObject response = (JSONObject) responses.get(0);
             publicKeyHolder.set((String)(response.get("signing_public_key")));
+        }else {
+            Config.instance().getLogger(getClass().getName()).info("Lookup failed for : " + object);
         }
+
     }
 
     public static JSONArray lookup(String subscriber_id) {
