@@ -1,5 +1,6 @@
 package in.succinct.bpp.shell.util;
 
+import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.reflection.ModelReflector;
@@ -14,6 +15,8 @@ import in.succinct.bpp.core.adaptor.NetworkAdaptor;
 
 import in.succinct.bpp.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.bpp.core.tasks.BppActionTask;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -123,8 +126,19 @@ public class BecknUtil {
     }
 
     public static Map<String,String> getAdaptorConfig(){
-        List<String> keys = Config.instance().getPropertyKeys("in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor")+".*");
+        String providerConfigKey = "in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor") + ".provider.config";
+        String config = Config.instance().getProperty(providerConfigKey);
+        JSONObject adaptorJSON = config == null ? new JSONObject() :(JSONObject) JSONValue.parse(config);
+
         Map<String,String> properties = new HashMap<>();
+        for (Object o : adaptorJSON.keySet()) {
+            String k = (String)o;
+            properties.put(String.format("in.succinct.bpp.%s.%s",Config.instance().getProperty("in.succinct.bpp.shell.adaptor"),k), StringUtil.valueOf(adaptorJSON.get(k)));
+        }
+
+        List<String> keys = Config.instance().getPropertyKeys("in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor")+".*");
+        keys.remove(providerConfigKey);
+
         for (String k : keys){
             properties.put(k,Config.instance().getProperty(k));
         }
