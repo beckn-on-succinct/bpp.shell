@@ -11,14 +11,13 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.CommerceAdaptorFactory;
-import in.succinct.bpp.core.adaptor.NetworkAdaptor;
 
-import in.succinct.bpp.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.bpp.core.tasks.BppActionTask;
+import in.succinct.onet.core.adaptor.NetworkAdaptor;
+import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;

@@ -32,10 +32,10 @@ import in.succinct.beckn.SellerException.InvalidRequestError;
 import in.succinct.beckn.SellerException.InvalidSignature;
 import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
-import in.succinct.bpp.core.adaptor.api.MessageLogger;
-import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
+import in.succinct.bpp.core.adaptor.NetworkApiAdaptor;
 import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.shell.util.BecknUtil;
+import in.succinct.onet.core.api.MessageLogger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -164,7 +164,7 @@ public class BppController extends Controller {
                 error.setCode(new SellerException.GenericBusinessError().getErrorCode());
             }
             error.setMessage(ex.getMessage());
-            BecknUtil.getNetworkAdaptor().getApiAdaptor().log(MessageLogger.FROM_NETWORK,request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
+            ((NetworkApiAdaptor)BecknUtil.getNetworkAdaptor().getApiAdaptor()).log(MessageLogger.FROM_NETWORK,request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
         }
     }
