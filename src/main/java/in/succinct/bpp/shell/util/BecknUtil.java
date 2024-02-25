@@ -47,9 +47,6 @@ public class BecknUtil {
     }
 
 
-    public static String getRegistryUrl(){
-        return getNetworkAdaptor().getRegistryUrl();
-    }
     public static String getSubscriberUrl(){
         return String.format("%s/bpp",Config.instance().getServerBaseUrl());
     }

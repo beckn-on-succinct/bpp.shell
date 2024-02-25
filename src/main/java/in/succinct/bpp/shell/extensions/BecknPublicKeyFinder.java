@@ -9,11 +9,13 @@ import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.routing.Config;
+import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.shell.util.BecknUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.util.Iterator;
+import java.util.List;
 
 public class BecknPublicKeyFinder implements Extension {
     static {
@@ -25,47 +27,23 @@ public class BecknPublicKeyFinder implements Extension {
         String subscriber_id = (String)context[0];
         String uniqueKeyId = (String)context[1];
         ObjectHolder<String> publicKeyHolder = (ObjectHolder<String>) context[2];
+        if (publicKeyHolder.get() != null){
+            return;
+        }
 
-        JSONObject object = new JSONObject();
-        object.put("subscriber_id",subscriber_id);
-        object.put("country","IND");
-        //object.put("pub_key_id",uniqueKeyId);
-        //object.put("unique_key_id",uniqueKeyId);
+        Subscriber subscriber = new Subscriber();
+        subscriber.setSubscriberId(subscriber_id);
+        subscriber.setUniqueKeyId(uniqueKeyId);
+        //subscriber.setCountry("IND");
 
 
-        JSONArray responses = lookup(object);
+        List<Subscriber> responses = BecknUtil.getNetworkAdaptor().lookup(subscriber,true);
 
         if (!responses.isEmpty()){
-            JSONObject response = (JSONObject) responses.get(0);
-            publicKeyHolder.set((String)(response.get("signing_public_key")));
+            publicKeyHolder.set(responses.get(0).getSigningPublicKey());
         }else {
-            Config.instance().getLogger(getClass().getName()).info("Lookup failed for : " + object);
+            Config.instance().getLogger(getClass().getName()).info("Lookup failed for : " + subscriber);
         }
-
-    }
-
-    public static JSONArray lookup(String subscriber_id) {
-        JSONObject object = new JSONObject();
-        object.put("subscriber_id",subscriber_id);
-        object.put("country","IND");
-        return lookup(object);
-    }
-    public static JSONArray lookup(JSONObject object){
-        JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(BecknUtil.getRegistryUrl() ,"lookup").input(object).inputFormat(InputFormat.JSON)
-                .header("content-type", MimeType.APPLICATION_JSON.toString())
-                .header("accept",MimeType.APPLICATION_JSON.toString()).getResponseAsJson();
-        if (responses == null ){
-            responses = new JSONArray();
-        }
-
-        for (Iterator<?> i = responses.iterator(); i.hasNext(); ) {
-            JSONObject object1 = (JSONObject) i.next();
-            if (!ObjectUtil.equals(object1.get("status"),"SUBSCRIBED")){
-                i.remove();
-            }
-        }
-
-        return responses;
 
     }
 
