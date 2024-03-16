@@ -11,6 +11,7 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.SWFHttpResponse;
+import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
@@ -24,6 +25,8 @@ import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.BecknException;
 import in.succinct.beckn.Error;
 import in.succinct.beckn.Error.Type;
+import in.succinct.beckn.Order;
+import in.succinct.beckn.Payment;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.beckn.SellerException;
@@ -33,8 +36,11 @@ import in.succinct.beckn.SellerException.InvalidSignature;
 import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
+import in.succinct.bpp.core.db.model.LocalOrderSynchronizer;
+import in.succinct.bpp.core.db.model.LocalOrderSynchronizerFactory;
 import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.shell.util.BecknUtil;
+import in.succinct.json.JSONAwareWrapper.JSONAwareWrapperCreator;
 import in.succinct.onet.core.api.MessageLogger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -48,6 +54,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.text.Format;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +131,7 @@ public class BppController extends Controller {
             if (getPath().getHeader("X-Gateway-Authorization") != null) {
                 headers.put("X-Gateway-Authorization",getPath().getHeader("X-Gateway-Authorization"));
 
-                in.succinct.beckn.Subscriber bg = getSubscriber(request.extractAuthorizationParams("X-Gateway-Authorization",headers));
+                in.succinct.beckn.Subscriber bg = getGatewaySubscriber(request.extractAuthorizationParams("X-Gateway-Authorization",headers));
                 if (bg != null) {
                     request.getExtendedAttributes().set(Request.CALLBACK_URL, bg.getSubscriberUrl());
                 }
@@ -169,14 +176,18 @@ public class BppController extends Controller {
         }
     }
 
-    private Subscriber getSubscriber(Map<String, String> authParams) {
+    private Subscriber getGatewaySubscriber(Map<String, String> authParams) {
         in.succinct.beckn.Subscriber bg = null;
         if (!authParams.isEmpty()){
             String keyId = authParams.get("keyId");
             StringTokenizer keyTokenizer = new StringTokenizer(keyId,"|");
             String subscriberId = keyTokenizer.nextToken();
 
-            List<Subscriber> subscriber = BecknUtil.getNetworkAdaptor().lookup(subscriberId,true);
+            List<Subscriber> subscriber = BecknUtil.getNetworkAdaptor().lookup(new Subscriber(){{
+                setSubscriberId(subscriberId);
+                setUniqueKeyId(keyId);
+                setType(Subscriber.SUBSCRIBER_TYPE_BG);
+            }},true);
             if (!subscriber.isEmpty()){
                 bg = subscriber.get(0);
             }
@@ -432,4 +443,28 @@ public class BppController extends Controller {
         return new BytesView(getPath(),output.toString().getBytes(),MimeType.APPLICATION_JSON);
     }
 
+    public View on_payment_update(){
+        Payment payment = new Payment();
+        try {
+            payment.setInner(Payment.parse(getPath().getInputStream()));
+            String beckn_transaction_id = payment.getParams().get("beckn_transaction_id");
+
+            LocalOrderSynchronizer  localOrderSynchronizer = LocalOrderSynchronizerFactory.getInstance().getLocalOrderSynchronizer(BecknUtil.getSubscriber());
+            Order order = localOrderSynchronizer.getLastKnownOrder(beckn_transaction_id);
+            if (order.getPayment() == null){
+                order.setPayment(new Payment());
+            }
+            order.getPayment().update(payment);
+            for (Object k : payment.getParams().getInner().keySet()){
+                order.getPayment().getParams().set(k.toString(),(String) payment.getParams().get(k.toString()));
+            }
+
+
+            localOrderSynchronizer.sync(beckn_transaction_id,order, true);
+
+        }catch (IOException ex){
+            throw new RuntimeException(ex);
+        }
+        return IntegrationAdaptor.instance(SWFHttpResponse.class, JSONObject.class ).createStatusResponse(getPath(),null);
+    }
 }
