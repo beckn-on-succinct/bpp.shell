@@ -10,6 +10,7 @@ public class BecknPrivateKeyFinder implements Extension {
         Registry.instance().registerExtension("beckn.private.key.get", new BecknPrivateKeyFinder());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void invoke(Object... context) {
         String subscriber_id = (String) context[0];

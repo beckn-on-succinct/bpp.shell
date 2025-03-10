@@ -11,7 +11,6 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.SWFHttpResponse;
-import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
@@ -25,8 +24,6 @@ import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.BecknException;
 import in.succinct.beckn.Error;
 import in.succinct.beckn.Error.Type;
-import in.succinct.beckn.Order;
-import in.succinct.beckn.Payment;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.beckn.SellerException;
@@ -36,11 +33,8 @@ import in.succinct.beckn.SellerException.InvalidSignature;
 import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
-import in.succinct.bpp.core.db.model.LocalOrderSynchronizer;
-import in.succinct.bpp.core.db.model.LocalOrderSynchronizerFactory;
 import in.succinct.bpp.core.tasks.BppActionTask;
-import in.succinct.bpp.shell.util.BecknUtil;
-import in.succinct.json.JSONAwareWrapper.JSONAwareWrapperCreator;
+import in.succinct.bpp.shell.util.NetworkManager;
 import in.succinct.onet.core.api.MessageLogger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -54,7 +48,6 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.text.Format;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,43 +56,43 @@ import java.util.StringTokenizer;
 import java.util.logging.Level;
 
 public class BppController extends Controller {
-    private CommerceAdaptor adaptor ;
+    private final CommerceAdaptor adaptor ;
     public BppController(Path path) {
         super(path);
-        adaptor = BecknUtil.getCommerceAdaptor();
+        adaptor = NetworkManager.getInstance().getCommerceAdaptor();
     }
 
     public View subscribe() {
-        BecknUtil.subscribe();
+        NetworkManager.getInstance().subscribe(Subscriber.SUBSCRIBER_TYPE_BPP);
         return new BytesView(getPath(),"Subscription initiated!".getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
     public View register(){
-        BecknUtil.getNetworkAdaptor().register(BecknUtil.getCommerceAdaptor().getSubscriber());
+        NetworkManager.getInstance().getNetworkAdaptor().register(NetworkManager.getInstance().getCommerceAdaptor().getSubscriber());
         return new BytesView(getPath(),"Registration initiated!".getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
     @RequireLogin(false)
     public View subscriber_json(){
-        return new BytesView(getPath(),BecknUtil.getCommerceAdaptor().getSubscriber().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        return new BytesView(getPath(),NetworkManager.getInstance().getCommerceAdaptor().getSubscriber().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
     @RequireLogin(false)
     public View reindex(){
-        Registry.instance().callExtensions( "in.succinct.bpp.search.extension.reinstall",BecknUtil.getNetworkAdaptor(),BecknUtil.getCommerceAdaptor());
+        Registry.instance().callExtensions( "in.succinct.bpp.search.extension.reinstall",NetworkManager.getInstance().getNetworkAdaptor(),NetworkManager.getInstance().getCommerceAdaptor());
         return IntegrationAdaptor.instance(SWFHttpResponse.class, JSONObject.class).createStatusResponse(getPath(),null);
     }
 
     public View sign() throws  Exception{
-        String sign = Request.generateSignature(StringUtil.read(getPath().getInputStream()), Request.getPrivateKey(BecknUtil.getSubscriberId(),BecknUtil.getCryptoKeyId()));
+        String sign = Request.generateSignature(StringUtil.read(getPath().getInputStream()), Request.getPrivateKey(NetworkManager.getInstance().getSubscriberId(),NetworkManager.getInstance().getLatestKeyId()));
         return new BytesView(getPath(),sign.getBytes(StandardCharsets.UTF_8),MimeType.TEXT_PLAIN);
     }
 
-    @SuppressWarnings("unchecked")
     private BppActionTask createTask(String action, Request request, Map<String,String> headers){
         try {
-            return (BppActionTask)BecknUtil.getCommerceAdaptor().getSubscriber().getTaskClass(action).
-                    getConstructor(NetworkApiAdaptor.class,CommerceAdaptor.class,Request.class,Map.class).newInstance(BecknUtil.getNetworkAdaptor().getApiAdaptor(),adaptor,request,headers);
+            return (BppActionTask)NetworkManager.getInstance().getCommerceAdaptor().getSubscriber().getTaskClass(action).
+                    getConstructor(NetworkApiAdaptor.class,CommerceAdaptor.class,Request.class,Map.class).newInstance(
+                            (NetworkApiAdaptor)NetworkManager.getInstance().getNetworkAdaptor().getApiAdaptor(),adaptor,request,headers);
         }catch(Exception ex){
             throw new RuntimeException(ex);
         }
@@ -112,8 +105,8 @@ public class BppController extends Controller {
 
             request = new Request(StringUtil.read(getPath().getInputStream()));
             // Go Ahead or reject context based on subsciber!
-            request.getContext().setBppId(BecknUtil.getSubscriberId());
-            request.getContext().setBppUri(BecknUtil.getSubscriberUrl());
+            request.getContext().setBppId(NetworkManager.getInstance().getSubscriberId());
+            request.getContext().setBppUri(NetworkManager.getInstance().getSubscriberUrl(Subscriber.SUBSCRIBER_TYPE_BPP));
             request.getContext().setAction(getPath().action());
 
             //String callbackUrl = request.getContext().getBapUri();
@@ -138,7 +131,7 @@ public class BppController extends Controller {
             }
             Config.instance().getLogger(getClass().getName()).log(Level.INFO,request.toString());
 
-            BecknApiCall.build().schema(BecknUtil.getSchemaURL()).url(getPath().getOriginalRequestUrl()).path("/"+getPath().action()).headers(headers).request(request).validateRequest();
+            BecknApiCall.build().schema(NetworkManager.getInstance().getSchemaURL(request.getContext().getDomain())).url(getPath().getOriginalRequestUrl()).path("/"+getPath().action()).headers(headers).request(request).validateRequest();
 
             BppActionTask task = createTask(getPath().action(),request,headers);
 
@@ -171,7 +164,7 @@ public class BppController extends Controller {
                 error.setCode(new SellerException.GenericBusinessError().getErrorCode());
             }
             error.setMessage(ex.getMessage());
-            ((NetworkApiAdaptor)BecknUtil.getNetworkAdaptor().getApiAdaptor()).log(MessageLogger.FROM_NETWORK,request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
+            ((NetworkApiAdaptor)NetworkManager.getInstance().getNetworkAdaptor().getApiAdaptor()).log(MessageLogger.FROM_NETWORK,request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
         }
     }
@@ -183,7 +176,7 @@ public class BppController extends Controller {
             StringTokenizer keyTokenizer = new StringTokenizer(keyId,"|");
             String subscriberId = keyTokenizer.nextToken();
 
-            List<Subscriber> subscriber = BecknUtil.getNetworkAdaptor().lookup(new Subscriber(){{
+            List<Subscriber> subscriber = NetworkManager.getInstance().getNetworkAdaptor().lookup(new Subscriber(){{
                 setSubscriberId(subscriberId);
                 setUniqueKeyId(keyId);
                 setType(Subscriber.SUBSCRIBER_TYPE_BG);
@@ -202,7 +195,7 @@ public class BppController extends Controller {
         JSONObject out = new JSONObject();
 
         try {
-            Registry.instance().callExtensions("in.succinct.bpp.shell."+getPath().action(), adaptor, BecknUtil.getNetworkAdaptor(), getPath());
+            Registry.instance().callExtensions("in.succinct.bpp.shell."+getPath().action(), adaptor, NetworkManager.getInstance().getNetworkAdaptor(), getPath());
             out.put("status","OK");
         }catch (RuntimeException e){
             StringWriter w = new StringWriter();
@@ -226,29 +219,8 @@ public class BppController extends Controller {
     }
 
     @RequireLogin(false)
-    public View issue(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View issue_status(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View receiver_recon(){
-        return act();
-    }
-
-
-
-    @RequireLogin(false)
     public View order_hook(String event){
         //event accessible via path.parameter()
-        return hook();
-    }
-    @RequireLogin(false)
-    public View igm_hook(){
         return hook();
     }
 
@@ -265,13 +237,6 @@ public class BppController extends Controller {
 
     @RequireLogin(false)
     public View refund_hook(String event){
-        return hook();
-    }
-
-    @RequireLogin(false)
-    public View recon_hook(String event){
-        //event = on_receiver_recon
-        //event accessible via path.parameter()
         return hook();
     }
 
@@ -365,7 +330,7 @@ public class BppController extends Controller {
                 error.setType(Type.DOMAIN_ERROR);
             }
         }
-        //BecknUtil.log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
+        //NetworkManager.getInstance().log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
         return response;
     }
 
@@ -391,7 +356,7 @@ public class BppController extends Controller {
     public View ack(Request request){
         Response response = new Response(new Acknowledgement(Status.ACK));
 
-        //BecknUtil.log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
+        //NetworkManager.getInstance().log("FromNetwork",request,getPath().getHeaders(),response,getPath().getOriginalRequestUrl());
 
         return new BytesView(getPath(),response.getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
@@ -418,7 +383,7 @@ public class BppController extends Controller {
         String payload = StringUtil.read(getPath().getInputStream());
         JSONObject object = (JSONObject) JSONValue.parse(payload);
 
-        Subscriber registry = BecknUtil.getNetworkAdaptor().getRegistry();
+        Subscriber registry = NetworkManager.getInstance().getNetworkAdaptor().getRegistry();
 
         if (registry.getEncrPublicKey() == null){
             throw new RuntimeException("Could not find registry keys for " + registry);
@@ -427,7 +392,7 @@ public class BppController extends Controller {
 
 
         PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,
-                CryptoKey.find(BecknUtil.getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION).getPrivateKey());
+                CryptoKey.find(NetworkManager.getInstance().getLatestKeyId(),CryptoKey.PURPOSE_ENCRYPTION).getPrivateKey());
 
         PublicKey registryPublicKey = Request.getEncryptionPublicKey(registry.getEncrPublicKey());
 
@@ -441,30 +406,5 @@ public class BppController extends Controller {
         output.put("answer", Crypt.getInstance().decrypt((String)object.get("challenge"),"AES",key));
 
         return new BytesView(getPath(),output.toString().getBytes(),MimeType.APPLICATION_JSON);
-    }
-
-    public View on_payment_update(){
-        Payment payment = new Payment();
-        try {
-            payment.setInner(Payment.parse(getPath().getInputStream()));
-            String beckn_transaction_id = payment.getParams().get("beckn_transaction_id");
-
-            LocalOrderSynchronizer  localOrderSynchronizer = LocalOrderSynchronizerFactory.getInstance().getLocalOrderSynchronizer(BecknUtil.getSubscriber());
-            Order order = localOrderSynchronizer.getLastKnownOrder(beckn_transaction_id);
-            if (order.getPayment() == null){
-                order.setPayment(new Payment());
-            }
-            order.getPayment().update(payment);
-            for (Object k : payment.getParams().getInner().keySet()){
-                order.getPayment().getParams().set(k.toString(),(String) payment.getParams().get(k.toString()));
-            }
-
-
-            localOrderSynchronizer.sync(beckn_transaction_id,order, true);
-
-        }catch (IOException ex){
-            throw new RuntimeException(ex);
-        }
-        return IntegrationAdaptor.instance(SWFHttpResponse.class, JSONObject.class ).createStatusResponse(getPath(),null);
     }
 }
