@@ -1,7 +1,9 @@
 package in.succinct.bpp.shell.util;
 
 import com.venky.core.string.StringUtil;
+import com.venky.core.util.ObjectHolder;
 import com.venky.core.util.ObjectUtil;
+import com.venky.extension.Registry;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.plugins.background.core.Task;
@@ -131,16 +133,19 @@ public class NetworkManager {
         }
         return null;
     }
-    
     public CommerceAdaptor getCommerceAdaptor(){
         return CommerceAdaptorFactory.getInstance().createAdaptor(getAdaptorConfig(),getSubscriber("BPP"));
     }
     public  Map<String,String> getAdaptorConfig(){
-        String providerConfigKey = "in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor") + ".provider.config";
-        String config = Config.instance().getProperty(providerConfigKey);
-        JSONObject adaptorJSON = null ;
+        String adaptorKey = "in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor") ;
+        String config = Config.instance().getProperty(adaptorKey);
+        JSONObject adaptorJSON;
         try {
-            adaptorJSON = config == null ? new JSONObject() : (JSONObject) JSONValue.parseWithException(config);
+            if (config != null) {
+                adaptorJSON  = (JSONObject) JSONValue.parseWithException(config);
+            }else {
+                adaptorJSON  = new JSONObject();
+            }
         }catch(ParseException ex){
             throw new RuntimeException(ex);
         }
@@ -152,7 +157,6 @@ public class NetworkManager {
         }
         
         List<String> keys = Config.instance().getPropertyKeys("in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor")+".*");
-        keys.remove(providerConfigKey);
         
         for (String k : keys){
             properties.put(k,Config.instance().getProperty(k));

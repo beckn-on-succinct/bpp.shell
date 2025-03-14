@@ -11,6 +11,8 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.SWFHttpResponse;
+import com.venky.swf.db.model.User;
+import com.venky.swf.extensions.request.authenticators.ApiKeyAuthenticator;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
@@ -56,10 +58,10 @@ import java.util.StringTokenizer;
 import java.util.logging.Level;
 
 public class BppController extends Controller {
-    private final CommerceAdaptor adaptor ;
+    CommerceAdaptor adaptor ;
     public BppController(Path path) {
         super(path);
-        adaptor = NetworkManager.getInstance().getCommerceAdaptor();
+        this.adaptor = NetworkManager.getInstance().getCommerceAdaptor();
     }
 
     public View subscribe() {
@@ -92,7 +94,8 @@ public class BppController extends Controller {
         try {
             return (BppActionTask)NetworkManager.getInstance().getCommerceAdaptor().getSubscriber().getTaskClass(action).
                     getConstructor(NetworkApiAdaptor.class,CommerceAdaptor.class,Request.class,Map.class).newInstance(
-                            (NetworkApiAdaptor)NetworkManager.getInstance().getNetworkAdaptor().getApiAdaptor(),adaptor,request,headers);
+                            (NetworkApiAdaptor)NetworkManager.getInstance().getNetworkAdaptor().getApiAdaptor(),
+                            NetworkManager.getInstance().getCommerceAdaptor(),request,headers);
         }catch(Exception ex){
             throw new RuntimeException(ex);
         }
@@ -128,6 +131,13 @@ public class BppController extends Controller {
                 if (bg != null) {
                     request.getExtendedAttributes().set(Request.CALLBACK_URL, bg.getSubscriberUrl());
                 }
+            }
+            if (getPath().getHeader("ApiKey") != null){
+                User owner = getPath().getSessionUser();
+                if (owner == null){
+                    throw new RuntimeException("Cannot identify customer");
+                }
+                headers.put("user.id",String.valueOf(owner.getId()));
             }
             Config.instance().getLogger(getClass().getName()).log(Level.INFO,request.toString());
 
@@ -195,7 +205,8 @@ public class BppController extends Controller {
         JSONObject out = new JSONObject();
 
         try {
-            Registry.instance().callExtensions("in.succinct.bpp.shell."+getPath().action(), adaptor, NetworkManager.getInstance().getNetworkAdaptor(), getPath());
+            Registry.instance().callExtensions("in.succinct.bpp.shell."+getPath().action(),
+                    adaptor, NetworkManager.getInstance().getNetworkAdaptor(), getPath());
             out.put("status","OK");
         }catch (RuntimeException e){
             StringWriter w = new StringWriter();
