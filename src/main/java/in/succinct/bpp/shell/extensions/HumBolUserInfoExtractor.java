@@ -37,7 +37,7 @@ public class HumBolUserInfoExtractor extends SocialLoginInfoExtractor {
         
         
         JSONObject requiredUserInfo = new JSONObject();
-        for (String attr : new String[]{"Name","Email","UserEmails","UserRoles"}){
+        for (String attr : new String[]{"Name","Email","PhoneNumber","UserEmails","UserPhones","UserRoles"}){
             requiredUserInfo.put(attr,userInfo.get(attr));
         }
         if (companies != null && !companies.isEmpty()) {
