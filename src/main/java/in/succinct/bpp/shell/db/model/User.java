@@ -16,4 +16,8 @@ public interface User extends com.venky.swf.plugins.collab.db.model.user.User {
         user = Database.getTable(User.class).getRefreshed(user);
         return user;
     }
+    
+    String getCredentialJson();
+    void setCredentialJson(String credentialJson);
+    
 }

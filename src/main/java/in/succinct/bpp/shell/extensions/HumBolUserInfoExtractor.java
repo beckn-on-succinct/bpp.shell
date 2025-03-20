@@ -45,7 +45,7 @@ public class HumBolUserInfoExtractor extends SocialLoginInfoExtractor {
             if (!ObjectUtil.equals(company.get("VerificationStatus"),"Approved")){
                 throw new RuntimeException("Kyc needs to be completed");
             }
-            requiredUserInfo.put("ProviderId", company.get("SubscriberId")); //This is the only channel user can see.
+            requiredUserInfo.put("ProviderId", company.get("SubscriberId"));
         }
         return requiredUserInfo;
     }

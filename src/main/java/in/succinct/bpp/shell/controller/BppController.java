@@ -11,9 +11,9 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.SWFHttpResponse;
-import com.venky.swf.db.model.User;
-import com.venky.swf.extensions.request.authenticators.ApiKeyAuthenticator;
+import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
+import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.tasks.BecknApiCall;
@@ -36,6 +36,7 @@ import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
 import in.succinct.bpp.core.tasks.BppActionTask;
+import in.succinct.bpp.shell.db.model.User;
 import in.succinct.bpp.shell.util.NetworkManager;
 import in.succinct.onet.core.api.MessageLogger;
 import org.json.simple.JSONObject;
@@ -45,6 +46,7 @@ import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -133,12 +135,12 @@ public class BppController extends Controller {
                 }
             }
             if (getPath().getHeader("ApiKey") != null){
-                User owner = getPath().getSessionUser();
-                if (owner == null){
-                    throw new RuntimeException("Cannot identify customer");
+                User owner = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
+                if (owner != null){
+                    headers.put("user.id",String.valueOf(owner.getId()));
                 }
-                headers.put("user.id",String.valueOf(owner.getId()));
             }
+            headers.putIfAbsent("user.id","1");
             Config.instance().getLogger(getClass().getName()).log(Level.INFO,request.toString());
 
             BecknApiCall.build().schema(NetworkManager.getInstance().getSchemaURL(request.getContext().getDomain())).url(getPath().getOriginalRequestUrl()).path("/"+getPath().action()).headers(headers).request(request).validateRequest();
@@ -197,6 +199,44 @@ public class BppController extends Controller {
         }
         return bg;
 
+    }
+    
+    @SuppressWarnings("unchecked")
+    public View credentials(){
+        User user = getSessionUser().getRawRecord().getAsProxy(User.class);
+        HttpMethod method = HttpMethod.valueOf(getPath().getRequest().getMethod());
+        
+        
+        switch (method){
+            case GET -> {
+                JSONObject credsTemplate = new JSONObject();
+                
+                return new BytesView(getPath(),credsTemplate.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+            }
+            case POST,PUT -> {
+                try {
+                    JSONObject creds  = (JSONObject) JSONValue.parseWithException(new InputStreamReader(getPath().getInputStream()));
+                    String js = user.getCredentialJson();
+                    JSONObject existing = new JSONObject();
+                    if (js != null) {
+                        existing = (JSONObject) JSONValue.parseWithException(js);
+                    }
+                    
+                    if (creds != null) {
+                        existing.putAll(creds);
+                    }
+                    
+                }catch (Exception ex){
+                    throw new RuntimeException(ex);
+                }
+            }
+            case DELETE -> {
+                user.setCredentialJson("{}");
+            }
+            default ->
+                    throw new IllegalStateException("Unexpected value: " + method);
+        }
+        
     }
 
     /* web hook */
