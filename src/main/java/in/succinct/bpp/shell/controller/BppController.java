@@ -11,7 +11,6 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.SWFHttpResponse;
-import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
@@ -36,7 +35,7 @@ import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
 import in.succinct.bpp.core.tasks.BppActionTask;
-import in.succinct.bpp.shell.db.model.User;
+import in.succinct.bpp.core.db.model.User;
 import in.succinct.bpp.shell.util.NetworkManager;
 import in.succinct.onet.core.api.MessageLogger;
 import org.json.simple.JSONObject;
@@ -210,7 +209,7 @@ public class BppController extends Controller {
         switch (method){
             case GET -> {
                 JSONObject credsTemplate = new JSONObject();
-                
+                Registry.instance().callExtensions("bpp.shell.fill.credentials",credsTemplate,user);
                 return new BytesView(getPath(),credsTemplate.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
             }
             case POST,PUT -> {
@@ -236,7 +235,7 @@ public class BppController extends Controller {
             default ->
                     throw new IllegalStateException("Unexpected value: " + method);
         }
-        
+        return no_content();
     }
 
     /* web hook */
