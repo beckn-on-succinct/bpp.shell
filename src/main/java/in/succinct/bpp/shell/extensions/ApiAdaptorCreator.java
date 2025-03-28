@@ -3,8 +3,9 @@ package in.succinct.bpp.shell.extensions;
 import com.venky.core.util.ObjectHolder;
 import com.venky.extension.Extension;
 import com.venky.extension.Registry;
-import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
+
 import in.succinct.onet.core.adaptor.NetworkAdaptor;
+import in.succinct.onet.core.adaptor.NetworkApiAdaptor;
 
 
 public class ApiAdaptorCreator implements Extension {
@@ -16,7 +17,7 @@ public class ApiAdaptorCreator implements Extension {
         NetworkAdaptor adaptor= (NetworkAdaptor) objects[0];
         @SuppressWarnings("unchecked")
         ObjectHolder<NetworkApiAdaptor> h = (ObjectHolder<NetworkApiAdaptor>) objects[1];
-        NetworkApiAdaptor networkApiAdaptor = new NetworkApiAdaptor(adaptor){};
+        NetworkApiAdaptor networkApiAdaptor = new in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor(adaptor){};
         h.set(networkApiAdaptor);
     }
 }
