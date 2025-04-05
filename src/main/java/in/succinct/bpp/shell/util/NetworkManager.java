@@ -18,8 +18,11 @@ import in.succinct.beckn.Request;
 
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.CommerceAdaptorFactory;
+import in.succinct.bpp.core.db.model.ProviderConfig;
 import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.onet.core.adaptor.NetworkAdaptor;
+import in.succinct.onet.core.adaptor.NetworkAdaptor.Domain;
+import in.succinct.onet.core.adaptor.NetworkAdaptor.DomainCategory;
 import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -96,7 +99,7 @@ public class NetworkManager {
     
     public Subscriber getSubscriber(String role){
         String selfKeyId = getLatestKeyId();
-        
+        DomainCategory category = getDomainCategory();
         return new Subscriber(){
             {
                 setSubscriberId(Config.instance().getHostName());
@@ -106,7 +109,14 @@ public class NetworkManager {
                 setNonce(Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
                 setSubscriberUrl(NetworkManager.getInstance().getSubscriberUrl(role));
                 setType(Subscriber.SUBSCRIBER_TYPE_BPP);
-                NetworkAdaptorFactory.getInstance().getAdaptor(getNetworkId()).getSubscriptionJson(this);
+                Domains domains = new Domains();
+                for (Domain domain : getNetworkAdaptor().getDomains()) {
+                    if (domain.getDomainCategory() == category){
+                        domains.add(domain);
+                    }
+                }
+                setDomains(domains);
+                getNetworkAdaptor().getSubscriptionJson(this);
             }
             
             @SuppressWarnings("unchecked")
@@ -120,6 +130,14 @@ public class NetworkManager {
     public URL getSchemaURL(String domain) {
         return getInstance().getNetworkAdaptor().getDomains().get(domain).getSchemaURL();
         //return "/config/schema.yaml";
+    }
+    
+    ProviderConfig providerConfig = null;
+    public DomainCategory getDomainCategory(){
+        if (providerConfig == null) {
+            providerConfig = new ProviderConfig(getAdaptorConfig().get(getAdapterKey() + ".provider.config"));
+        }
+        return providerConfig.getDomainCategory();
     }
     
     
@@ -136,8 +154,11 @@ public class NetworkManager {
     public CommerceAdaptor getCommerceAdaptor(){
         return CommerceAdaptorFactory.getInstance().createAdaptor(getAdaptorConfig(),getSubscriber("BPP"));
     }
+    public String getAdapterKey(){
+        return "in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor") ;
+    }
     public  Map<String,String> getAdaptorConfig(){
-        String adaptorKey = "in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor") ;
+        String adaptorKey = getAdapterKey();
         String config = Config.instance().getProperty(adaptorKey);
         JSONObject adaptorJSON;
         try {
