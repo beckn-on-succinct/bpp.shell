@@ -224,6 +224,8 @@ public class BppController extends Controller {
                     if (creds != null) {
                         existing.putAll(creds);
                     }
+                    user.setCredentialJson(existing.toString());
+                    user.save();
                     
                 }catch (Exception ex){
                     throw new RuntimeException(ex);
@@ -231,6 +233,7 @@ public class BppController extends Controller {
             }
             case DELETE -> {
                 user.setCredentialJson("{}");
+                user.save();
             }
             default ->
                     throw new IllegalStateException("Unexpected value: " + method);

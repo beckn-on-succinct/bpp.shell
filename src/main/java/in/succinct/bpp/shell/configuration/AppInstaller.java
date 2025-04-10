@@ -13,7 +13,7 @@ public class AppInstaller implements Installer {
         Database.getInstance().resetIdGeneration();
 
         TaskManager.instance().executeAsync((DbTask)()->{
-            NetworkManager.getInstance().subscribe("BPP");
+            //NetworkManager.getInstance().subscribe("BPP");
             Registry.instance().callExtensions( "in.succinct.bpp.search.extension.installer", NetworkManager.getInstance().getNetworkAdaptor(),NetworkManager.getInstance().getCommerceAdaptor());
         },false);
 

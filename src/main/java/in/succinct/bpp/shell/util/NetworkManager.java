@@ -112,7 +112,7 @@ public class NetworkManager {
                 Domains domains = new Domains();
                 for (Domain domain : getNetworkAdaptor().getDomains()) {
                     if (domain.getDomainCategory() == category){
-                        domains.add(domain);
+                        domains.add(domain.getId());
                     }
                 }
                 setDomains(domains);
