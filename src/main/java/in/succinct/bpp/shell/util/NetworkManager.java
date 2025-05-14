@@ -4,13 +4,17 @@ import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectHolder;
 import com.venky.core.util.ObjectUtil;
 import com.venky.extension.Registry;
+import com.venky.swf.db.Database;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.path.Path;
+import com.venky.swf.path._IPath;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
@@ -28,12 +32,14 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 
+import javax.xml.crypto.Data;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 public class NetworkManager {
     private static volatile NetworkManager sSoleInstance;
@@ -143,8 +149,10 @@ public class NetworkManager {
     
     public CryptoKey getLatestKey(String purpose){
         List<CryptoKey> latest = new Select().from(CryptoKey.class).
-                where(new Expression(ModelReflector.instance(CryptoKey.class).getPool(), "PURPOSE",
-                        Operator.EQ, purpose)).
+                where(new Expression(ModelReflector.instance(CryptoKey.class).getPool(), Conjunction.AND).
+                        add(new Expression(ModelReflector.instance(CryptoKey.class).getPool(), "PURPOSE",Operator.EQ, purpose)).
+                        add(new Expression(ModelReflector.instance(CryptoKey.class).getPool(), "ALIAS",Operator.LK, Config.instance().getHostName() + "%"))).
+                
                 orderBy("ID DESC").execute(1);
         if (!latest.isEmpty()) {
             return latest.get(0);
@@ -155,7 +163,15 @@ public class NetworkManager {
         return CommerceAdaptorFactory.getInstance().createAdaptor(getAdaptorConfig(),getSubscriber("BPP"));
     }
     public String getAdapterKey(){
-        return "in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor") ;
+        return "in.succinct.bpp." + getAdaptorName() ;
+    }
+    public String getAdaptorName(){
+        List<String> names = Config.instance().getPropertyValueList("in.succinct.bpp.shell.adaptor");
+        String name = new StringTokenizer(Config.instance().getHostName(),".").nextToken();
+        if (names.size() == 1){
+            name = names.get(0);
+        }
+        return name;
     }
     public  Map<String,String> getAdaptorConfig(){
         String adaptorKey = getAdapterKey();
@@ -172,12 +188,13 @@ public class NetworkManager {
         }
         
         Map<String,String> properties = new HashMap<>();
+        String adaptorName = getAdaptorName();
         for (Object o : adaptorJSON.keySet()) {
             String k = (String)o;
-            properties.put(String.format("in.succinct.bpp.%s.%s",Config.instance().getProperty("in.succinct.bpp.shell.adaptor"),k), StringUtil.valueOf(adaptorJSON.get(k)));
+            properties.put(String.format("in.succinct.bpp.%s.%s",adaptorName,k), StringUtil.valueOf(adaptorJSON.get(k)));
         }
         
-        List<String> keys = Config.instance().getPropertyKeys("in.succinct.bpp." + Config.instance().getProperty("in.succinct.bpp.shell.adaptor")+".*");
+        List<String> keys = Config.instance().getPropertyKeys(adaptorKey+".*");
         
         for (String k : keys){
             properties.put(k,Config.instance().getProperty(k));
