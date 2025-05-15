@@ -72,9 +72,12 @@ public class NetworkManager {
     }
     
     public void subscribe(String role){
-        TaskManager.instance().executeAsync((Task) () ->
-                getNetworkAdaptor().
-                        subscribe(getSubscriber(role)),false);
+        String hostname= Config.instance().getHostName();
+        TaskManager.instance().executeAsync((Task) () ->{
+                    Config.instance().setHostName(hostname);
+                    getNetworkAdaptor().
+                            subscribe(getSubscriber(role));
+                },false);
     }
     public NetworkAdaptor getNetworkAdaptor(){
         return NetworkAdaptorFactory.getInstance().getAdaptor(getNetworkId());
