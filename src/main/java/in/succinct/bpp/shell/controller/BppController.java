@@ -8,6 +8,7 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.extension.Registry;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
+import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.SWFHttpResponse;
@@ -34,6 +35,7 @@ import in.succinct.beckn.SellerException.InvalidSignature;
 import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
+import in.succinct.bpp.core.db.model.AdaptorCredential;
 import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.core.db.model.User;
 import in.succinct.bpp.shell.util.NetworkManager;
@@ -203,19 +205,25 @@ public class BppController extends Controller {
     @SuppressWarnings("unchecked")
     public View credentials(){
         User user = getSessionUser().getRawRecord().getAsProxy(User.class);
+        AdaptorCredential adaptorCredential = Database.getTable(AdaptorCredential.class).newRecord();
+        adaptorCredential.setAdaptorName(NetworkManager.getInstance().getAdaptorName());
+        adaptorCredential.setUserId(user.getId());
+        adaptorCredential = Database.getTable(AdaptorCredential.class).getRefreshed(adaptorCredential);
+        
+        
         HttpMethod method = HttpMethod.valueOf(getPath().getRequest().getMethod());
         
         
         switch (method){
             case GET -> {
                 JSONObject credsTemplate = new JSONObject();
-                Registry.instance().callExtensions("bpp.shell.fill.credentials",credsTemplate,user);
+                Registry.instance().callExtensions("bpp.shell.fill.credentials",credsTemplate,adaptorCredential);
                 return new BytesView(getPath(),credsTemplate.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
             }
             case POST,PUT -> {
                 try {
                     JSONObject creds  = (JSONObject) JSONValue.parseWithException(new InputStreamReader(getPath().getInputStream()));
-                    String js = user.getCredentialJson();
+                    String js = adaptorCredential.getCredentialJson();
                     JSONObject existing = new JSONObject();
                     if (js != null) {
                         existing = (JSONObject) JSONValue.parseWithException(js);
@@ -224,16 +232,15 @@ public class BppController extends Controller {
                     if (creds != null) {
                         existing.putAll(creds);
                     }
-                    user.setCredentialJson(existing.toString());
-                    user.save();
-                    
+                    adaptorCredential.setCredentialJson(existing.toString());
+                    adaptorCredential.save();
                 }catch (Exception ex){
                     throw new RuntimeException(ex);
                 }
             }
             case DELETE -> {
-                user.setCredentialJson("{}");
-                user.save();
+                adaptorCredential.setCredentialJson("{}");
+                adaptorCredential.save();
             }
             default ->
                     throw new IllegalStateException("Unexpected value: " + method);
