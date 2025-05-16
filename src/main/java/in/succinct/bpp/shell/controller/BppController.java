@@ -129,11 +129,13 @@ public class BppController extends Controller {
             }
             if (getPath().getHeader("X-Gateway-Authorization") != null) {
                 headers.put("X-Gateway-Authorization",getPath().getHeader("X-Gateway-Authorization"));
-
+                /*
                 in.succinct.beckn.Subscriber bg = getGatewaySubscriber(request.extractAuthorizationParams("X-Gateway-Authorization",headers));
-                if (bg != null) {
-                    request.getExtendedAttributes().set(Request.CALLBACK_URL, bg.getSubscriberUrl());
+                if (bg != null && !ObjectUtil.equals(bg.getSubscriberId(),request.getContext().getBapId())) {
+                    request.getExtendedAttributes().set(Request.CALLBACK_URL, bg.getSubscriberUrl());  // Send to bap directly!
                 }
+                Send to bap directly, No need to go via bg!!
+                */
             }
             if (getPath().getHeader("ApiKey") != null){
                 User owner = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
