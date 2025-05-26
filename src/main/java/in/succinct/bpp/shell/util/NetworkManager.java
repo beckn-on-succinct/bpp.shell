@@ -1,14 +1,9 @@
 package in.succinct.bpp.shell.util;
 
 import com.venky.core.string.StringUtil;
-import com.venky.core.util.ObjectHolder;
 import com.venky.core.util.ObjectUtil;
-import com.venky.extension.Registry;
-import com.venky.swf.db.Database;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.reflection.ModelReflector;
-import com.venky.swf.path.Path;
-import com.venky.swf.path._IPath;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
@@ -19,7 +14,6 @@ import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import in.succinct.beckn.Request;
-
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.CommerceAdaptorFactory;
 import in.succinct.bpp.core.db.model.ProviderConfig;
@@ -32,7 +26,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 
-import javax.xml.crypto.Data;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -67,9 +60,6 @@ public class NetworkManager {
         return getInstance();
     }
     
-    public String getNetworkId(){
-        return Config.instance().getProperty("in.succinct.onet.name","beckn_open");
-    }
     
     public void subscribe(String role){
         String hostname= Config.instance().getHostName();
@@ -80,7 +70,7 @@ public class NetworkManager {
                 },false);
     }
     public NetworkAdaptor getNetworkAdaptor(){
-        return NetworkAdaptorFactory.getInstance().getAdaptor(getNetworkId());
+        return NetworkAdaptorFactory.getInstance().getAdaptor();
     }
     
     public String getLatestKeyId(){
