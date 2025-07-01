@@ -46,6 +46,11 @@ public class HumBolUserInfoExtractor extends SocialLoginInfoExtractor {
                 throw new RuntimeException("Kyc needs to be completed");
             }
             requiredUserInfo.put("ProviderId", company.get("SubscriberId"));
+            if (ObjectUtil.equals(company.get("NetworkEnvironment"),"production")){
+                requiredUserInfo.put("NetworkEnvironment", "production");
+            }else {
+                requiredUserInfo.put("NetworkEnvironment", "test");
+            }
         }
         return requiredUserInfo;
     }
