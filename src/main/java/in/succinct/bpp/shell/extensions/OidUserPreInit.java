@@ -21,6 +21,11 @@ public class OidUserPreInit implements Extension {
                 throw new RuntimeException("Kyc needs to be completed");
             }
             userInfo.put("ProviderId", company.get("SubscriberId")); //This is the only channel user can see.
+            if (ObjectUtil.equals(company.get("NetworkEnvironment"),"production")){
+                userInfo.put("NetworkEnvironment", "production");
+            }else {
+                userInfo.put("NetworkEnvironment", "test");
+            }
         }
     }
 }
