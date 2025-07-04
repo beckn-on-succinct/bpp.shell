@@ -12,6 +12,7 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.SWFHttpResponse;
+import com.venky.swf.extensions.request.authenticators.ApiKeyAuthenticator;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
@@ -207,11 +208,11 @@ public class BppController extends Controller {
     @SuppressWarnings("unchecked")
     public View credentials(){
         User user = getSessionUser().getRawRecord().getAsProxy(User.class);
+        ApiKeyAuthenticator.refresh(getPath(),user);
         AdaptorCredential adaptorCredential = Database.getTable(AdaptorCredential.class).newRecord();
         adaptorCredential.setAdaptorName(NetworkManager.getInstance().getAdaptorName());
         adaptorCredential.setUserId(user.getId());
         adaptorCredential = Database.getTable(AdaptorCredential.class).getRefreshed(adaptorCredential);
-        
         
         HttpMethod method = HttpMethod.valueOf(getPath().getRequest().getMethod());
         
