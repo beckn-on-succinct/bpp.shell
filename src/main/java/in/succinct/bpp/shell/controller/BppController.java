@@ -208,7 +208,6 @@ public class BppController extends Controller {
     @SuppressWarnings("unchecked")
     public View credentials(){
         User user = getSessionUser().getRawRecord().getAsProxy(User.class);
-        ApiKeyAuthenticator.refresh(getPath(),user);
         AdaptorCredential adaptorCredential = Database.getTable(AdaptorCredential.class).newRecord();
         adaptorCredential.setAdaptorName(NetworkManager.getInstance().getAdaptorName());
         adaptorCredential.setUserId(user.getId());
@@ -237,6 +236,7 @@ public class BppController extends Controller {
                     }
                     adaptorCredential.setCredentialJson(existing.toString());
                     adaptorCredential.save();
+                    ApiKeyAuthenticator.refresh(getPath(),user);
                 }catch (Exception ex){
                     throw new RuntimeException(ex);
                 }
