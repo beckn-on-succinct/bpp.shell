@@ -244,6 +244,7 @@ public class BppController extends Controller {
             case DELETE -> {
                 adaptorCredential.setCredentialJson("{}");
                 adaptorCredential.save();
+                ApiKeyAuthenticator.refresh(getPath(),user);
             }
             default ->
                     throw new IllegalStateException("Unexpected value: " + method);
