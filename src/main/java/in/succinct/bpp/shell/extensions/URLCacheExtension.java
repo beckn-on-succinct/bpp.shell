@@ -6,10 +6,13 @@ import com.venky.extension.Extension;
 import com.venky.extension.Registry;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.Controller.CacheOperation;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
 import com.venky.swf.path._IPath;
 import com.venky.swf.routing.Config;
+import com.venky.swf.views.BytesView;
+import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
 
 import java.util.Map;
@@ -70,12 +73,13 @@ public class URLCacheExtension implements Extension {
         System.out.println(getInstance().isCacheable("/services/destroy"));
     }*/
 
-    Pattern[] cacheablePatterns = new Pattern[]{
-            Pattern.compile("^("+ (Config.instance().isDevelopmentEnvironment()? "/resources/scripts/node_modules" : "" )+ ".*)\\.(html|jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js|map)$"),
-            Pattern.compile("^("+ String.format("/resources/%s/",Config.instance().getHostName())+ ".*)\\.(html|jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js|map)$"),
 
-    };
     private boolean isCacheable(String path){
+        Pattern[] cacheablePatterns = new Pattern[]{
+                    Pattern.compile("^("+ (Config.instance().isDevelopmentEnvironment()? "/resources/scripts/node_modules" : "" )+ ".*)\\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js|map|html|md|scss|txt|webp|json)$"),
+                        Pattern.compile("^("+ String.format("/resources/%s/",Config.instance().getHostName())+ ".*)\\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js|map|html|md|scss|txt|webp|json)$"),
+
+        };
         for (Pattern p : cacheablePatterns){
             if (p.matcher(path).matches()){
                 return true;
@@ -84,7 +88,11 @@ public class URLCacheExtension implements Extension {
         return false;
     }
     private String getURL(Path path) {
-        StringBuilder requestURL = new StringBuilder(path.getTarget()); // Need to check based on target and not request path. Or else there is an infinite loop with forwarding.
+        final StringBuilder requestURL = new StringBuilder(); // Need to check based on target and not request path. Or else there is an infinite loop with forwarding.
+        path.getPathElements().forEach(e->{
+            requestURL.append("/");
+            requestURL.append(e);
+        });
         String queryString = path.getRequest() == null ? null : path.getRequest().getQueryString();
 
         if (queryString == null) {
@@ -115,6 +123,13 @@ public class URLCacheExtension implements Extension {
         if (!isCacheable(path)){
             return;
         }
-        cache.get(getURL(path)).put(path.getReturnProtocol().toString(),holder.get());
+        String mimeType = path.getReturnProtocol().toString();
+        View v = holder.get();
+        if (v instanceof HtmlView ){
+            mimeType = MimeType.TEXT_HTML.toString();
+        }else if (v instanceof BytesView){
+            mimeType = ((BytesView)v).getContentType();
+        }
+        cache.get(getURL(path)).put(mimeType,holder.get());
     }
 }
