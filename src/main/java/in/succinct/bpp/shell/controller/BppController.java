@@ -139,6 +139,7 @@ public class BppController extends Controller {
                 */
             }
             if (getPath().getHeader("ApiKey") != null){
+                headers.put("ApiKey",getPath().getHeader("ApiKey"));
                 User owner = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
                 if (owner != null){
                     headers.put("user.id",String.valueOf(owner.getId()));

@@ -35,7 +35,6 @@ public class HumBolUserInfoExtractor extends SocialLoginInfoExtractor {
         Config.instance().getLogger(getClass().getName()).info("Found user :\n" +  userInfo);
         JSONArray companies = (JSONArray) userInfo.get("Companies");
         
-        
         JSONObject requiredUserInfo = new JSONObject();
         for (String attr : new String[]{"Name","Email","PhoneNumber","UserEmails","UserPhones","UserRoles"}){
             requiredUserInfo.put(attr,userInfo.get(attr));
@@ -45,6 +44,8 @@ public class HumBolUserInfoExtractor extends SocialLoginInfoExtractor {
             if (!ObjectUtil.equals(company.get("VerificationStatus"),"Approved")){
                 throw new RuntimeException("Kyc needs to be completed");
             }
+            company.remove("Applications"); //Not required to inherit.
+            
             requiredUserInfo.put("ProviderId", company.get("SubscriberId"));
             if (ObjectUtil.equals(company.get("NetworkEnvironment"),"production")){
                 requiredUserInfo.put("NetworkEnvironment", "production");

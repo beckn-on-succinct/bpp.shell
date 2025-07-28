@@ -20,6 +20,8 @@ public class OidUserPreInit implements Extension {
             if (!ObjectUtil.equals(company.get("VerificationStatus"),"Approved")){
                 throw new RuntimeException("Kyc needs to be completed");
             }
+            company.remove("Applications"); //Not required to inherit.
+            
             userInfo.put("ProviderId", company.get("SubscriberId")); //This is the only channel user can see.
             if (ObjectUtil.equals(company.get("NetworkEnvironment"),"production")){
                 userInfo.put("NetworkEnvironment", "production");
