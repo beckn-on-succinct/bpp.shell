@@ -212,6 +212,7 @@ public class BppController extends Controller {
         AdaptorCredential adaptorCredential = Database.getTable(AdaptorCredential.class).newRecord();
         adaptorCredential.setAdaptorName(NetworkManager.getInstance().getAdaptorName());
         adaptorCredential.setUserId(user.getId());
+        adaptorCredential.setProduction(ObjectUtil.equals("production",user.getNetworkEnvironment()));
         adaptorCredential = Database.getTable(AdaptorCredential.class).getRefreshed(adaptorCredential);
         
         HttpMethod method = HttpMethod.valueOf(getPath().getRequest().getMethod());
