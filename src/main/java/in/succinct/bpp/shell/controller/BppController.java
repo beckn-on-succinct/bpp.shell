@@ -145,7 +145,6 @@ public class BppController extends Controller {
                     headers.put("user.id",String.valueOf(owner.getId()));
                 }
             }
-            headers.putIfAbsent("user.id","1");
             Config.instance().getLogger(getClass().getName()).log(Level.INFO,request.toString());
 
             BecknApiCall.build().schema(NetworkManager.getInstance().getSchemaURL(request.getContext().getDomain())).url(getPath().getOriginalRequestUrl()).path("/"+getPath().action()).headers(headers).request(request).validateRequest();
