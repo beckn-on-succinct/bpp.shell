@@ -244,8 +244,7 @@ public class BppController extends Controller {
                 }
             }
             case DELETE -> {
-                adaptorCredential.setCredentialJson("{}");
-                adaptorCredential.save();
+                adaptorCredential.destroy();
                 ApiKeyAuthenticator.refresh(getPath(),user);
             }
             default ->
