@@ -14,6 +14,7 @@ import com.venky.swf.routing.Config;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
+import org.eclipse.jetty.server.Request;
 
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -50,7 +51,7 @@ public class URLCacheExtension implements Extension {
     @Override
     public void invoke(Object... context) {
         if (((_IPath)context[1]).action().equals("reset_router")){
-            Config.instance().getLogger(getClass().getName()).warning("ignoreing cache for " + ((_IPath)context[1]).getRequest().getRequestURI());
+            Config.instance().getLogger(getClass().getName()).warning("ignoreing cache for " + ((_IPath)context[1]).getRequest().getHttpURI());
             return;
         }
         Path path = (Path)context[1];
@@ -93,7 +94,7 @@ public class URLCacheExtension implements Extension {
             requestURL.append("/");
             requestURL.append(e);
         });
-        String queryString = path.getRequest() == null ? null : path.getRequest().getQueryString();
+        String queryString = path.getRequest() == null ? null : path.getRequest().getHttpURI().getQuery();
 
         if (queryString == null) {
             return requestURL.toString();

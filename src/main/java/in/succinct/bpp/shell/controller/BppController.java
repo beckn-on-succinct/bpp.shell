@@ -37,16 +37,16 @@ import in.succinct.beckn.Subscriber;
 import in.succinct.bpp.core.adaptor.CommerceAdaptor;
 import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
 import in.succinct.bpp.core.db.model.AdaptorCredential;
-import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.core.db.model.User;
+import in.succinct.bpp.core.tasks.BppActionTask;
 import in.succinct.bpp.shell.util.NetworkManager;
 import in.succinct.onet.core.api.MessageLogger;
+import org.eclipse.jetty.http.HttpStatus;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -275,9 +275,9 @@ public class BppController extends Controller {
             @Override
             public void write() throws IOException {
                 if (ObjectUtil.equals("OK",out.get("status"))) {
-                    super.write(HttpServletResponse.SC_OK);
+                    super.write(HttpStatus.OK_200);
                 }else {
-                    super.write(HttpServletResponse.SC_EXPECTATION_FAILED);
+                    super.write(HttpStatus.EXPECTATION_FAILED_417);
                 }
             }
         };
@@ -410,9 +410,9 @@ public class BppController extends Controller {
             @Override
             public void write() throws IOException {
                 if (th instanceof InvalidSignature){
-                    super.write(HttpServletResponse.SC_UNAUTHORIZED);
+                    super.write(HttpStatus.UNAUTHORIZED_401);
                 }else {
-                    super.write(HttpServletResponse.SC_BAD_REQUEST);
+                    super.write(HttpStatus.BAD_REQUEST_400);
                 }
                 //TODO wanto return 200 in 1.0
             }
