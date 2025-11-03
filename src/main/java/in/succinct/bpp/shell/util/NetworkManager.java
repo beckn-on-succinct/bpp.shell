@@ -160,9 +160,11 @@ public class NetworkManager {
     }
     public String getAdaptorName(){
         List<String> names = Config.instance().getPropertyValueList("in.succinct.bpp.shell.adaptor");
-        String name = new StringTokenizer(Config.instance().getHostName(),".").nextToken();
+        String name ;
         if (names.size() == 1){
             name = names.get(0);
+        }else {
+            name = new StringTokenizer(Config.instance().getHostName(),".").nextToken();
         }
         return name;
     }
@@ -187,7 +189,7 @@ public class NetworkManager {
             properties.put(String.format("in.succinct.bpp.%s.%s",adaptorName,k), StringUtil.valueOf(adaptorJSON.get(k)));
         }
         
-        List<String> keys = Config.instance().getPropertyKeys(adaptorKey+".*");
+        List<String> keys = Config.instance().getPropertyKeys(adaptorKey+".*");//Mostly this is empty. Mostly kept for BC!
         
         for (String k : keys){
             properties.put(k,Config.instance().getProperty(k));

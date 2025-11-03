@@ -85,8 +85,13 @@ public class BppController extends Controller {
 
     @RequireLogin(false)
     public View reindex(){
-        Registry.instance().callExtensions( "in.succinct.bpp.search.extension.reinstall",NetworkManager.getInstance().getNetworkAdaptor(),NetworkManager.getInstance().getCommerceAdaptor());
+        return reindex(null);
+    }
+    @RequireLogin(false)
+    public View reindex(String providerId) {
+        Registry.instance().callExtensions( "in.succinct.bpp.search.extension.reinstall",NetworkManager.getInstance().getNetworkAdaptor(),NetworkManager.getInstance().getCommerceAdaptor(),providerId);
         return IntegrationAdaptor.instance(SWFHttpResponse.class, JSONObject.class).createStatusResponse(getPath(),null);
+    
     }
 
     public View sign() throws  Exception{

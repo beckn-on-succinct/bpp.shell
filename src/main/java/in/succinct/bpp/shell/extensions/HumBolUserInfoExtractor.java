@@ -53,6 +53,7 @@ public class HumBolUserInfoExtractor extends SocialLoginInfoExtractor {
                 requiredUserInfo.put("NetworkEnvironment", "test");
             }
         }
+        requiredUserInfo.put("Companies",companies);
         return requiredUserInfo;
     }
     private void cleanUpId(JSONObject userInfo){
