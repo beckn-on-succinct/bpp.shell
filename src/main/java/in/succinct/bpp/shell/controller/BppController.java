@@ -83,11 +83,9 @@ public class BppController extends Controller {
         return new BytesView(getPath(),NetworkManager.getInstance().getCommerceAdaptor().getSubscriber().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
-    @RequireLogin(false)
     public View reindex(){
         return reindex(null);
     }
-    @RequireLogin(false)
     public View reindex(String providerId) {
         Registry.instance().callExtensions( "in.succinct.bpp.search.extension.reinstall",NetworkManager.getInstance().getNetworkAdaptor(),NetworkManager.getInstance().getCommerceAdaptor(),providerId);
         return IntegrationAdaptor.instance(SWFHttpResponse.class, JSONObject.class).createStatusResponse(getPath(),null);
