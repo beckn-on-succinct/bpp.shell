@@ -5,7 +5,7 @@ import com.venky.extension.Extension;
 import com.venky.extension.Registry;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.Subscriber;
-import in.succinct.bpp.shell.util.NetworkManager;
+import in.succinct.bpp.core.util.NetworkManager;
 
 import java.util.List;
 

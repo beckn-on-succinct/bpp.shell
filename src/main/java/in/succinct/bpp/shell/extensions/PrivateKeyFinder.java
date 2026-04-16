@@ -4,7 +4,7 @@ import com.venky.core.util.ObjectHolder;
 import com.venky.extension.Extension;
 import com.venky.extension.Registry;
 import in.succinct.beckn.Request;
-import in.succinct.bpp.shell.util.NetworkManager;
+import in.succinct.bpp.core.util.NetworkManager;
 
 public class PrivateKeyFinder implements Extension {
     static {

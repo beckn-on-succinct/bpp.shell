@@ -39,7 +39,7 @@ import in.succinct.bpp.core.adaptor.api.NetworkApiAdaptor;
 import in.succinct.bpp.core.db.model.AdaptorCredential;
 import in.succinct.bpp.core.db.model.User;
 import in.succinct.bpp.core.tasks.BppActionTask;
-import in.succinct.bpp.shell.util.NetworkManager;
+import in.succinct.bpp.core.util.NetworkManager;
 import in.succinct.onet.core.api.MessageLogger;
 import org.eclipse.jetty.http.HttpStatus;
 import org.json.simple.JSONObject;
